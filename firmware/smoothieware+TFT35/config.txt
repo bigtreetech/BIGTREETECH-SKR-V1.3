@@ -1,0 +1,271 @@
+# Smoothieboard configuration file, see http://smoothieware.org/configuring-smoothie
+# NOTE Lines must not exceed 132 characters, and '#' characters mean what follows is ignored
+## Robot module configurations : general handling of movement G-codes and slicing into moves
+
+
+# Delta configuration
+# See http://smoothieware.org/delta
+arm_solution                                 cartesian     # 笛卡尔    
+
+
+extruder.hotend.enable                          true          # 使能挤出机，如果为false，相关的配置都将被忽略
+
+# Arm solution configuration : Cartesian robot. Translates mm positions into stepper positions
+# See http://smoothieware.org/stepper-motors
+alpha_steps_per_mm                           80              # X轴运动1mm需要的步进数
+beta_steps_per_mm                            80              # Y轴
+gamma_steps_per_mm                           400             # Z轴
+extruder.hotend.steps_per_mm                 100              # E轴运动1mm需要的步进数
+
+# Cartesian axis speed limits
+x_axis_max_speed                             12000            # X轴最大移动速率 mm/min
+y_axis_max_speed                             12000            # Y轴
+z_axis_max_speed                             150              # Z轴
+
+alpha_max_rate                               12000.0          # X轴最大速率 mm/min
+beta_max_rate                                12000.0          # Maxmimum rate in mm/min
+gamma_max_rate                               150.0            # Maximum rate in mm/min
+
+# Basic motion configuration
+default_feed_rate                            2400             # G1/G2/G3的默认速率(mm/minute)
+default_seek_rate                            2400             # G0的默认速率 (mm/minute)
+mm_per_arc_segment                           0.5              # 圆弧分段的固定长度, 0 to disable
+mm_max_arc_error                             0.01             # The maximum error for line segments that divide arcs 0 to disable
+
+
+
+
+# Planner module configuration : Look-ahead and acceleration configuration
+# See http://smoothieware.org/motion-control
+acceleration                                 3000             # 加速度 mm/s^2
+#z_acceleration                              500              # Z轴加速度 mm/s^2, 0 uses acceleration which is the default. DO NOT SET ON A DELTA
+junction_deviation                           0.05             # See http://smoothieware.org/motion-control#junction-deviation
+#z_junction_deviation                        0.0              # For Z only moves, -1 uses junction_deviation, zero disables junction_deviation on z moves DO NOT SET ON A DELTA
+
+
+# Stepper module configuration 
+# Pins are defined as  ports, and pin numbers, appending "!" to the number will invert a pin
+# See http://smoothieware.org/pin-configuration and http://smoothieware.org/pinout
+alpha_step_pin                               2.2              # X轴的step signal管脚
+beta_step_pin                                0.19              # Pin for beta stepper step signal
+gamma_step_pin                               0.22              # Pin for gamma stepper step signal
+extruder.hotend.step_pin                     2.13              # 挤出的step signal管脚
+
+alpha_dir_pin                                2.6              # X轴的方向stepper direction管脚, add '!' to 翻转电机运转方向
+beta_dir_pin                                 0.20             # Pin for beta stepper direction, add '!' to reverse direction
+gamma_dir_pin                                2.11!             # Pin for gamma stepper direction, add '!' to reverse direction
+extruder.hotend.dir_pin                      0.11    	      # 挤出的方向dir signal管脚 ( add '!' to 翻转电机运转方向)
+
+alpha_en_pin                                 2.1              # X轴使能管脚
+beta_en_pin                                  2.8             # Pin for beta enable
+gamma_en_pin                                 0.21             # Pin for gamma enable
+extruder.hotend.en_pin                       2.12             # 挤出的使能信号
+
+alpha_current                                0.9              # X轴驱动电流
+beta_current                                 0.9              # Y stepper motor current
+gamma_current                                0.9              # Z stepper motor current
+delta_current                                0.9              # 挤出机1的驱动电流
+
+## Extruder module configuration
+# See http://smoothieware.org/extruder
+extruder.hotend.default_feed_rate               600           # 挤出的默认速率 ( mm/minute )
+extruder.hotend.acceleration                    10000         # 挤出的加速度mm/s^2
+extruder.hotend.max_speed                       80            # 最大挤出速度 mm/s
+
+# Extruder offset
+#extruder.hotend.x_offset                        0            # X offset from origin in mm
+#extruder.hotend.y_offset                        0            # Y offset from origin in mm
+#extruder.hotend.z_offset                        0            # Z offset from origin in mm
+
+# Firmware retract settings when using G10/G11, these are the defaults if not defined, must be defined for each extruder if not using the defaults
+#extruder.hotend.retract_length                  3            # Retract length in mm
+#extruder.hotend.retract_feedrate                45           # Retract feedrate in mm/sec
+#extruder.hotend.retract_recover_length          0            # Additional length for recover
+#extruder.hotend.retract_recover_feedrate        8            # Recover feedrate in mm/sec (should be less than retract feedrate)
+#extruder.hotend.retract_zlift_length            0            # Z-lift on retract in mm, 0 disables
+#extruder.hotend.retract_zlift_feedrate          6000         # Z-lift feedrate in mm/min (Note mm/min NOT mm/sec)
+
+
+laser_module_enable                           false           # false失能激光模式
+
+## Temperature control configuration
+# See http://smoothieware.org/temperaturecontrol
+
+# First hotend configuration
+temperature_control.hotend.enable            true             # 使能hotend
+temperature_control.hotend.thermistor_pin    0.24             # 热敏电阻连接的管脚
+temperature_control.hotend.heater_pin        2.7              # 加热棒连接的管脚, 如果不需要设置为 nc 
+temperature_control.hotend.thermistor        EPCOS100K        # See http://smoothieware.org/temperaturecontrol#toc5
+#temperature_control.hotend.beta             4066             # Or set the beta value
+temperature_control.hotend.set_m_code        104              # 设置温度的M-code
+temperature_control.hotend.set_and_wait_m_code 109            # 设置并且等待温度达到目标的M-code
+temperature_control.hotend.designator        T                # 这个模块的名称
+#temperature_control.hotend.max_temp         300              # 最大温度，默认为300
+#temperature_control.hotend.min_temp         0                # 最小温度
+
+# Safety control is enabled by default and can be overidden here, the values show the defaults
+# See http://smoothieware.org/temperaturecontrol#runaway
+temperature_control.hotend.runaway_heating_timeout      0  # How long it can take to heat up, max is 2040 seconds.
+temperature_control.hotend.runaway_cooling_timeout      0  # How long it can take to cool down if temp is set lower, max is 2040 seconds
+temperature_control.hotend.runaway_range                0   # How far from the set temperature it can wander, max setting is 63掳C
+
+# PID configuration 
+# See http://smoothieware.org/temperaturecontrol#pid
+temperature_control.hotend.p_factor         22.2             # P ( proportional ) factor
+temperature_control.hotend.i_factor         1.08            # I ( integral ) factor
+temperature_control.hotend.d_factor         114               # D ( derivative ) factor
+
+#temperature_control.hotend.max_pwm          64               # Max pwm, 64 is a good value if driving a 12v resistor with 24v.
+
+
+temperature_control.bed.enable               true             # 使能热床
+temperature_control.bed.thermistor_pin       0.23             # 热敏电阻连接的管脚
+temperature_control.bed.heater_pin           2.5              # 加热热床的管脚
+temperature_control.bed.thermistor           EPCOS100K	      # See http://smoothieware.org/temperaturecontrol#thermistor
+temperature_control.bed.set_m_code           140              # 设置热床目标温度的M-code
+temperature_control.bed.set_and_wait_m_code  190              # 设置并等待热床达到目标温度的M-code
+temperature_control.bed.designator           B                # 热床的名称
+temperature_control.bed.runaway_heating_timeout      0  # How long it can take to heat up, max is 2040 seconds.
+temperature_control.bed.runaway_cooling_timeout      0  # How long it can take to cool down if temp is set lower, max is 2040 seconds
+temperature_control.bed.runaway_range                0   # How far from the set temperature it can wander, max setting is 63掳C
+
+
+## Switch modules
+# See http://smoothieware.org/switch
+
+# Switch module for fan control
+switch.fan.enable                            true             # 使能风扇
+switch.fan.input_on_command                  M106             # 开风扇的M-code
+switch.fan.input_off_command                 M107             # 关风扇的M-code
+switch.fan.output_pin                        2.3              # 连接风扇的管脚
+switch.fan.output_type                       pwm              # PWM output settable with S parameter in the input_on_comand
+switch.fan.max_pwm                           255              # Set max pwm for the pin default is 255
+
+
+## Endstops
+# See http://smoothieware.org/endstops
+endstops_enable                              true             # 使能限位开关
+cartesian_homing                             true             # 使能G28归零
+alpha_min_endstop                            1.29^               # Pin to read min endstop, add a ! to invert if endstop is NO connected to ground
+alpha_max_endstop                            1.28^            # Pin to read max endstop, uncomment this and comment the above if using max endstops
+alpha_homing_direction                       home_to_min      # Or set to home_to_max and set alpha_max and uncomment the alpha_max_endstop
+alpha_min				     0
+alpha_max                                    300                # This gets loaded as the current position after homing when home_to_max is set
+beta_min_endstop                             1.27^               # Pin to read min endstop, add a ! to invert if endstop is NO connected to ground
+beta_max_endstop                             1.26^            # Pin to read max endstop, uncomment this and comment the above if using max endstops
+beta_homing_direction                        home_to_min      # Or set to home_to_max and set alpha_max and uncomment the alpha_max_endstop
+beta_min				     0
+beta_max                                     300                # This gets loaded as the current position after homing when home_to_max is set
+gamma_min_endstop                            1.25^               # Pin to read min endstop, add a ! to invert if endstop is NO connected to ground
+gamma_max_endstop                            1.24^            # Pin to read max endstop, uncomment this and comment the above if using max endstops
+gamma_homing_direction                       home_to_min      # Or set to home_to_max and set alpha_max and uncomment the alpha_max_endstop
+gamma_min                                    0      
+gamma_max                                    500
+  
+alpha_max_travel                             1000             # 归零时X轴移动的最大距离mm
+beta_max_travel                              1000             # 
+gamma_max_travel                             1000             # 
+
+# Endstops home at their fast feedrate first, then once the endstop is found they home again at their slow feedrate for accuracy
+alpha_fast_homing_rate_mm_s                  100              # x轴fast homing速率mm/second
+alpha_slow_homing_rate_mm_s                  20               # Alpha tower slow homing feedrate in mm/second
+beta_fast_homing_rate_mm_s                   100              # Beta  tower fast homing feedrate in mm/second
+beta_slow_homing_rate_mm_s                   20               # Beta  tower slow homing feedrate in mm/second
+gamma_fast_homing_rate_mm_s                  100              # Gamma tower fast homing feedrate in mm/second
+gamma_slow_homing_rate_mm_s                  20               # Gamma tower slow homing feedrate in mm/second
+
+alpha_homing_retract_mm                      5                # Distance to retract from the endstop after it is hit for alpha/X
+beta_homing_retract_mm                       5                # Distance to retract from the endstop after it is hit for beta/Y
+gamma_homing_retract_mm                      5                # Distance to retract from the endstop after it is hit for gamma/Z
+
+
+# Endstop debouncing options
+#endstop_debounce_count                       100              # Uncomment if you get noise on your endstops, default is 100
+#endstop_debounce_ms                          1                # Uncomment if you get noise on your endstops, default is 1 millisecond debounce
+
+# Endstop trim options
+alpha_trim                                    0                # Software trim for alpha stepper endstop (in mm)
+beta_trim                                     0                # Software trim for beta stepper endstop (in mm)
+gamma_trim                                    0                # Software trim for gamma stepper endstop (in mm)
+
+
+## Z-probe
+# See http://smoothieware.org/zprobe
+zprobe.enable                                true            # 使能zprobe
+zprobe.probe_pin                             1.29!^          # Pin probe is attached to, if NC remove the !
+zprobe.slow_feedrate                         30               # Mm/sec probe feed rate
+#zprobe.debounce_count                       100             # Set if noisy
+zprobe.fast_feedrate                         50             # Move feedrate mm/sec
+zprobe.probe_height                          10               # How much above bed to start probe
+#gamma_min_endstop                           nc              # Normally 1.28. Change to nc to prevent conflict,
+
+# Levelling strategy
+
+# Example for the delta calibration strategy
+#leveling-strategy.delta-calibration.enable   true            # Enable basic delta calibration
+#leveling-strategy.delta-calibration.radius   120             # the probe radius
+
+# Example for the delta grid leveling strategy
+# leveling-strategy.delta-grid.enable               false     # 使能网格调平
+# leveling-strategy.delta-grid.radius               100      # 调平的半径
+# leveling-strategy.delta-grid.size                 5 	   # 调平的网格数（必须为奇数）
+# leveling-strategy.delta-grid.probe_offsets        0,0,-0.2    # 
+# leveling-strategy.delta-grid.save                 true    # 
+# leveling-strategy.delta-grid.initial_height       10       # 
+
+leveling-strategy.three-point-leveling.enable		true		Set to true to enable the leveling strategy that probes three points to define a plane and then keeps the Z parallel to that plane. This is useful if your Z plate/bed is not perfectly aligned with your XY gantry	
+leveling-strategy.three-point-leveling.point1		100.0,0.0		The first probe point (X, Y)	
+leveling-strategy.three-point-leveling.point2		200.0,200.0		The second probe point (X, Y)	
+leveling-strategy.three-point-leveling.point3		0.0,200.0		The third probe point (X, Y)	
+leveling-strategy.three-point-leveling.home_first	true		Home the X and Y axes before probing	
+leveling-strategy.three-point-leveling.tolerance	0.03		The probe tolerance in millimetres, anything less that this will be ignored, default is 0.03mm	
+leveling-strategy.three-point-leveling.probe_offsets	0,0,0		The probe offset from nozzle, must be X,Y,Z (Z should always be 0), default is no offset. This is used if your nozzle is not exactly at the same position as where your tool would be.	
+leveling-strategy.three-point-leveling.save_plane	false		
+
+## Panel
+# See http://smoothieware.org/panel
+# Please find your panel on the wiki and copy/paste the right configuration here
+panel.enable                                 true             # 使能显示屏设置
+
+panel.lcd                                   reprap_discount_glcd     #显示屏类型
+panel.spi_channel                           0                 # SPI channel to use  ; GLCD EXP1 Pins 3,5 (MOSI, SCLK)
+panel.spi_cs_pin                            0.16              # SPI chip select     ; GLCD EXP1 Pin 4
+panel.encoder_a_pin                         3.25!^            # Encoder pin         ; GLCD EXP2 Pin 3
+panel.encoder_b_pin                         3.26!^            # Encoder pin         ; GLCD EXP2 Pin 5
+panel.click_button_pin                      0.28!^            # Click button        ; GLCD EXP1 Pin 2
+panel.buzz_pin                              1.30              # Pin for buzzer      ; GLCD EXP1 Pin 1
+#panel.back_button_pin                       0.28!^            # Back button         ; GLCD EXP2 Pin 8
+
+panel.external_sd                           true                    # set to true if there is an extrernal sdcard on the panel
+panel.external_sd.spi_channel               0                       # set spi channel the sdcard is on
+panel.external_sd.spi_cs_pin                1.23                    # set spi chip select for the sdcard (or any spare pin)
+panel.external_sd.sdcd_pin                  1.31!^                  # sd detect signal (set to nc if no sdcard detect) (or any spare pin)
+
+panel.menu_offset                            1                 # Some panels will need 1 here
+
+panel.alpha_jog_feedrate                     6000              # X jogging feedrate in mm/min
+panel.beta_jog_feedrate                      6000              # Y jogging feedrate in mm/min
+panel.gamma_jog_feedrate                     3000               # Z jogging feedrate in mm/min
+
+panel.hotend_temperature                     185               # Temp to set hotend when preheat is selected
+panel.bed_temperature                        60                # Temp to set bed when preheat is selected
+
+
+custom_menu.power_on.enable                false              #
+custom_menu.power_off.enable               false              #
+
+
+network.enable                               false            # Enable the ethernet network services
+network.webserver.enable                     false             # Enable the webserver
+network.telnet.enable                        false             # Enable the telnet server
+network.ip_address                           false             # Use dhcp to get ip address
+
+
+## System configuration
+# Serial communications configuration ( baud rate defaults to 9600 if undefined )
+# For communication over the UART port, *not* the USB/Serial port
+uart0.baud_rate                              115200           # Baud rate for the default hardware ( UART ) serial port
+
+second_usb_serial_enable                     false            # This enables a second USB serial port
+
+currentcontrol_module_enable                 false             # Control stepper motor current via the configuration fill
