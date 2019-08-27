@@ -1,9 +1,9 @@
 /**
  * Marlin 3D Printer Firmware
- * Copyright (C) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (c) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
  * Based on Sprinter and grbl.
- * Copyright (C) 2011 Camiel Gubbels / Erik van der Zalm
+ * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#pragma once
 
 /**
  * Standard Marlin Status Screen bitmaps
@@ -26,8 +27,6 @@
  * Use the Marlin Bitmap Converter to make your own:
  * http://marlinfw.org/tools/u8glib/converter.html
  */
-
-#include <binary.h>
 
 #include "../../inc/MarlinConfig.h"
 
@@ -661,6 +660,63 @@
 
 #endif // !STATUS_BED_WIDTH && !STATUS_COMBINE_HEATERS && HAS_HEATED_BED && HOTENDS < 4
 
+#if HAS_HEATED_CHAMBER
+
+  #define STATUS_CHAMBER_WIDTH 16
+
+  #ifdef STATUS_CHAMBER_ANIM
+
+    const unsigned char status_chamber_bmp[] PROGMEM = {
+      B11111111,B11111111,
+      B10000000,B00000001,
+      B10000000,B00000001,
+      B10000000,B00000001,
+      B10000000,B00000001,
+      B10000000,B00000001,
+      B10000000,B00000001,
+      B10000000,B00000001,
+      B10000000,B00000001,
+      B10000000,B00000001,
+      B11111111,B11111111,
+      B11111111,B11111111
+    };
+
+    const unsigned char status_chamber_on_bmp[] PROGMEM = {
+      B11111111,B11111111,
+      B10000000,B00000001,
+      B10000100,B00100001,
+      B10000010,B00010001,
+      B10000010,B00010001,
+      B10000100,B00100001,
+      B10001000,B01000001,
+      B10001000,B01000001,
+      B10000100,B00100001,
+      B10000000,B00000001,
+      B11111111,B11111111,
+      B11111111,B11111111
+    };
+
+  #else
+
+    const unsigned char status_chamber_bmp[] PROGMEM = {
+      B11111111,B11111111,
+      B10000000,B00000001,
+      B10000100,B00100001,
+      B10000010,B00010001,
+      B10000010,B00010001,
+      B10000100,B00100001,
+      B10001000,B01000001,
+      B10001000,B01000001,
+      B10000100,B00100001,
+      B10000000,B00000001,
+      B11111111,B11111111,
+      B11111111,B11111111
+    };
+
+  #endif
+
+#endif // HAS_HEATED_CHAMBER
+
 // Can also be overridden in Configuration.h
 // If you can afford it, try the 3-frame fan animation!
 // Don't compile in the fan animation with no fan
@@ -1114,7 +1170,7 @@
     #define STATUS_LOGO_X 0
   #endif
   #ifndef STATUS_LOGO_Y
-    #define STATUS_LOGO_Y MIN(0, 10 - (STATUS_LOGO_HEIGHT) / 2)
+    #define STATUS_LOGO_Y _MIN(0, 10 - (STATUS_LOGO_HEIGHT) / 2)
   #endif
   #ifndef STATUS_LOGO_HEIGHT
     #define STATUS_LOGO_HEIGHT (sizeof(status_logo_bmp) / (STATUS_LOGO_BYTEWIDTH))
@@ -1164,10 +1220,10 @@
     #define STATUS_HOTEND4_WIDTH STATUS_HOTEND3_WIDTH
   #endif
   #ifndef STATUS_HOTEND5_WIDTH
-    #define STATUS_HOTEND5_WIDTH STATUS_HOTEND5_WIDTH
+    #define STATUS_HOTEND5_WIDTH STATUS_HOTEND4_WIDTH
   #endif
   #ifndef STATUS_HOTEND6_WIDTH
-    #define STATUS_HOTEND6_WIDTH STATUS_HOTEND6_WIDTH
+    #define STATUS_HOTEND6_WIDTH STATUS_HOTEND5_WIDTH
   #endif
 
   constexpr uint8_t status_hotend_width[HOTENDS] = ARRAY_N(HOTENDS, STATUS_HOTEND1_WIDTH, STATUS_HOTEND2_WIDTH, STATUS_HOTEND3_WIDTH, STATUS_HOTEND4_WIDTH, STATUS_HOTEND5_WIDTH, STATUS_HOTEND6_WIDTH);
@@ -1208,10 +1264,10 @@
     #define STATUS_HOTEND4_X STATUS_HOTEND3_X + STATUS_HEATERS_XSPACE
   #endif
   #ifndef STATUS_HOTEND5_X
-    #define STATUS_HOTEND5_X STATUS_HOTEND5_X + STATUS_HEATERS_XSPACE
+    #define STATUS_HOTEND5_X STATUS_HOTEND4_X + STATUS_HEATERS_XSPACE
   #endif
   #ifndef STATUS_HOTEND6_X
-    #define STATUS_HOTEND6_X STATUS_HOTEND6_X + STATUS_HEATERS_XSPACE
+    #define STATUS_HOTEND6_X STATUS_HOTEND5_X + STATUS_HEATERS_XSPACE
   #endif
 
   #if HOTENDS > 2
@@ -1235,10 +1291,10 @@
         #define STATUS_HOTEND4_TEXT_X STATUS_HOTEND3_TEXT_X + STATUS_HEATERS_XSPACE
       #endif
       #ifndef STATUS_HOTEND5_TEXT_X
-        #define STATUS_HOTEND5_TEXT_X STATUS_HOTEND5_TEXT_X + STATUS_HEATERS_XSPACE
+        #define STATUS_HOTEND5_TEXT_X STATUS_HOTEND4_TEXT_X + STATUS_HEATERS_XSPACE
       #endif
       #ifndef STATUS_HOTEND6_TEXT_X
-        #define STATUS_HOTEND6_TEXT_X STATUS_HOTEND6_TEXT_X + STATUS_HEATERS_XSPACE
+        #define STATUS_HOTEND6_TEXT_X STATUS_HOTEND5_TEXT_X + STATUS_HEATERS_XSPACE
       #endif
       constexpr uint8_t status_hotend_text_x[] = ARRAY_N(HOTENDS, STATUS_HOTEND1_TEXT_X, STATUS_HOTEND2_TEXT_X, STATUS_HOTEND3_TEXT_X, STATUS_HOTEND4_TEXT_X, STATUS_HOTEND5_TEXT_X, STATUS_HOTEND6_TEXT_X);
       #define STATUS_HOTEND_TEXT_X(N) status_hotend_text_x[N]
@@ -1305,6 +1361,50 @@
 #endif
 
 //
+// Chamber Bitmap Properties
+//
+#ifndef STATUS_CHAMBER_WIDTH
+  #define STATUS_CHAMBER_WIDTH 0
+#endif
+#ifndef STATUS_CHAMBER_BYTEWIDTH
+  #define STATUS_CHAMBER_BYTEWIDTH BW(STATUS_CHAMBER_WIDTH)
+#endif
+#if STATUS_CHAMBER_WIDTH && !STATUS_HEATERS_WIDTH
+
+  #ifndef STATUS_CHAMBER_X
+    #define STATUS_CHAMBER_X (128 - (STATUS_FAN_BYTEWIDTH + STATUS_CHAMBER_BYTEWIDTH) * 8)
+  #endif
+
+  #ifndef STATUS_CHAMBER_HEIGHT
+    #ifdef STATUS_CHAMBER_ANIM
+      #define STATUS_CHAMBER_HEIGHT(S) ((S) ? sizeof(status_chamber_on_bmp) / (STATUS_CHAMBER_BYTEWIDTH) : sizeof(status_chamber_bmp) / (STATUS_CHAMBER_BYTEWIDTH))
+    #else
+      #define STATUS_CHAMBER_HEIGHT(S) (sizeof(status_chamber_bmp) / (STATUS_CHAMBER_BYTEWIDTH))
+    #endif
+  #endif
+
+  #ifndef STATUS_CHAMBER_Y
+    #define STATUS_CHAMBER_Y(S) (20 - STATUS_CHAMBER_HEIGHT(S))
+  #endif
+
+  #ifndef STATUS_CHAMBER_TEXT_X
+    #define STATUS_CHAMBER_TEXT_X (STATUS_CHAMBER_X + 7)
+  #endif
+
+  static_assert(
+    sizeof(status_chamber_bmp) == (STATUS_CHAMBER_BYTEWIDTH) * (STATUS_CHAMBER_HEIGHT(0)),
+    "Status chamber bitmap (status_chamber_bmp) dimensions don't match data."
+  );
+  #ifdef STATUS_CHAMBER_ANIM
+    static_assert(
+      sizeof(status_chamber_on_bmp) == (STATUS_CHAMBER_BYTEWIDTH) * (STATUS_CHAMBER_HEIGHT(1)),
+      "Status chamber bitmap (status_chamber_on_bmp) dimensions don't match data."
+    );
+  #endif
+
+#endif
+
+//
 // Bed Bitmap Properties
 //
 #ifndef STATUS_BED_WIDTH
@@ -1316,7 +1416,7 @@
 #if STATUS_BED_WIDTH && !STATUS_HEATERS_WIDTH
 
   #ifndef STATUS_BED_X
-    #define STATUS_BED_X (128 - (STATUS_FAN_BYTEWIDTH + STATUS_BED_BYTEWIDTH) * 8)
+    #define STATUS_BED_X (128 - (STATUS_CHAMBER_BYTEWIDTH + STATUS_FAN_BYTEWIDTH + STATUS_BED_BYTEWIDTH) * 8)
   #endif
 
   #ifndef STATUS_BED_HEIGHT

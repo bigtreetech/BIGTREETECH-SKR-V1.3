@@ -31,12 +31,12 @@
 
 #ifdef ARDUINO_ARCH_SAM
 
-#include "../shared/persistent_store_api.h"
 #include "../../inc/MarlinConfig.h"
 
-#if ENABLED(EEPROM_SETTINGS) && DISABLED(I2C_EEPROM) && DISABLED(SPI_EEPROM)
+#if ENABLED(EEPROM_SETTINGS) && NONE(I2C_EEPROM, SPI_EEPROM)
 
-#include <Arduino.h>
+#include "../shared/Marduino.h"
+#include "../shared/persistent_store_api.h"
 
 #define EEPROMSize     4096
 #define PagesPerGroup   128
@@ -997,5 +997,5 @@ void eeprom_flush(void) {
   ee_Flush();
 }
 
-#endif // ENABLED(EEPROM_SETTINGS) && DISABLED(I2C_EEPROM) && DISABLED(SPI_EEPROM)
+#endif // EEPROM_SETTINGS && (!I2C_EEPROM && !SPI_EEPROM)
 #endif // ARDUINO_ARCH_AVR

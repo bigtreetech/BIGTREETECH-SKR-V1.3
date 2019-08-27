@@ -1,7 +1,7 @@
 /**
  * Marlin 3D Printer Firmware
  *
- * Copyright (C) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (c) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  * Copyright (c) 2016 Bob Cousins bobcousins42@googlemail.com
  * Copyright (c) 2015-2016 Nico Tonnhofer wurstnase.reprap@gmail.com
  *
@@ -32,8 +32,8 @@
  * This has many limitations and is not fit for the purpose
  */
 
-HAL_STEP_TIMER_ISR;
-HAL_TEMP_TIMER_ISR;
+HAL_STEP_TIMER_ISR();
+HAL_TEMP_TIMER_ISR();
 
 Timer timers[2];
 

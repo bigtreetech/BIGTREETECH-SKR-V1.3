@@ -1,9 +1,9 @@
 /**
  * Marlin 3D Printer Firmware
- * Copyright (C) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (c) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
  * Based on Sprinter and grbl.
- * Copyright (C) 2011 Camiel Gubbels / Erik van der Zalm
+ * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,10 @@
 Stopwatch print_job_timer;      // Global Print Job Timer instance
 
 #else // PRINTCOUNTER
+
+#if ENABLED(EXTENSIBLE_UI)
+  #include "../lcd/extensible_ui/ui_api.h"
+#endif
 
 #include "printcounter.h"
 #include "../Marlin.h"
@@ -153,6 +157,8 @@ void PrintCounter::loadStats() {
     #endif
     #if HAS_BUZZER && SERVICE_WARNING_BUZZES > 0
       if (doBuzz) for (int i = 0; i < SERVICE_WARNING_BUZZES; i++) BUZZ(200, 404);
+    #else
+      UNUSED(doBuzz);
     #endif
   #endif // HAS_SERVICE_INTERVALS
 }
@@ -169,6 +175,10 @@ void PrintCounter::saveStats() {
   persistentStore.access_start();
   persistentStore.write_data(address + sizeof(uint8_t), (uint8_t*)&data, sizeof(printStatistics));
   persistentStore.access_finish();
+
+  #if ENABLED(EXTENSIBLE_UI)
+    ExtUI::onConfigurationStoreWritten(true);
+  #endif
 }
 
 #if HAS_SERVICE_INTERVALS
@@ -185,51 +195,32 @@ void PrintCounter::showStats() {
   char buffer[21];
 
   SERIAL_ECHOPGM(MSG_STATS);
+  SERIAL_ECHOLNPAIR(
+    "Prints: ", data.totalPrints,
+    ", Finished: ", data.finishedPrints,
+    ", Failed: ", data.totalPrints - data.finishedPrints
+                    - ((isRunning() || isPaused()) ? 1 : 0) // Remove 1 from failures with an active counter
+  );
 
-  SERIAL_ECHOPGM("Prints: ");
-  SERIAL_ECHO(data.totalPrints);
-
-  SERIAL_ECHOPGM(", Finished: ");
-  SERIAL_ECHO(data.finishedPrints);
-
-  SERIAL_ECHOPGM(", Failed: "); // Note: Removes 1 from failures with an active counter
-  SERIAL_ECHO(data.totalPrints - data.finishedPrints
-    - ((isRunning() || isPaused()) ? 1 : 0));
-
-  SERIAL_EOL();
   SERIAL_ECHOPGM(MSG_STATS);
-
   duration_t elapsed = data.printTime;
   elapsed.toString(buffer);
-
-  SERIAL_ECHOPGM("Total time: ");
-  SERIAL_ECHO(buffer);
-
+  SERIAL_ECHOPAIR("Total time: ", buffer);
   #if ENABLED(DEBUG_PRINTCOUNTER)
-    SERIAL_ECHOPGM(" (");
-    SERIAL_ECHO(data.printTime);
+    SERIAL_ECHOPAIR(" (", data.printTime);
     SERIAL_CHAR(')');
   #endif
 
   elapsed = data.longestPrint;
   elapsed.toString(buffer);
-
-  SERIAL_ECHOPGM(", Longest job: ");
-  SERIAL_ECHO(buffer);
-
+  SERIAL_ECHOPAIR(", Longest job: ", buffer);
   #if ENABLED(DEBUG_PRINTCOUNTER)
-    SERIAL_ECHOPGM(" (");
-    SERIAL_ECHO(data.longestPrint);
+    SERIAL_ECHOPAIR(" (", data.longestPrint);
     SERIAL_CHAR(')');
   #endif
 
-  SERIAL_EOL();
-  SERIAL_ECHOPGM(MSG_STATS);
-
-  SERIAL_ECHOPGM("Filament used: ");
-  SERIAL_ECHO(data.filamentUsed / 1000);
+  SERIAL_ECHOPAIR("\n" MSG_STATS "Filament used: ", data.filamentUsed / 1000);
   SERIAL_CHAR('m');
-
   SERIAL_EOL();
 
   #if SERVICE_INTERVAL_1 > 0
@@ -257,13 +248,13 @@ void PrintCounter::tick() {
     data.printTime += delta;
 
     #if SERVICE_INTERVAL_1 > 0
-      data.nextService1 -= MIN(delta, data.nextService1);
+      data.nextService1 -= _MIN(delta, data.nextService1);
     #endif
     #if SERVICE_INTERVAL_2 > 0
-      data.nextService2 -= MIN(delta, data.nextService2);
+      data.nextService2 -= _MIN(delta, data.nextService2);
     #endif
     #if SERVICE_INTERVAL_3 > 0
-      data.nextService3 -= MIN(delta, data.nextService3);
+      data.nextService3 -= _MIN(delta, data.nextService3);
     #endif
 
     update_next = now + updateInterval * 1000;

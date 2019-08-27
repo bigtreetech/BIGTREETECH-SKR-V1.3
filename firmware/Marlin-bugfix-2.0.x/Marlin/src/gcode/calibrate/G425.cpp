@@ -1,9 +1,9 @@
 /**
  * Marlin 3D Printer Firmware
- * Copyright (C) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (c) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
  * Based on Sprinter and grbl.
- * Copyright (C) 2011 Camiel Gubbels / Erik van der Zalm
+ * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,13 +25,17 @@
 #if ENABLED(CALIBRATION_GCODE)
 
 #include "../gcode.h"
+
+#if ENABLED(BACKLASH_GCODE)
+  #include "../../feature/backlash.h"
+#endif
+
 #include "../../lcd/ultralcd.h"
 #include "../../module/motion.h"
 #include "../../module/planner.h"
 #include "../../module/tool_change.h"
 #include "../../module/endstops.h"
 #include "../../feature/bedlevel/bedlevel.h"
-
 
 /**
  * G425 backs away from the calibration object by various distances
@@ -52,12 +56,8 @@
   #define CALIBRATION_MEASUREMENT_CERTAIN   0.5 // mm
 #endif
 
-#define HAS_X_CENTER (ENABLED(CALIBRATION_MEASURE_LEFT)  && ENABLED(CALIBRATION_MEASURE_RIGHT))
-#define HAS_Y_CENTER (ENABLED(CALIBRATION_MEASURE_FRONT) && ENABLED(CALIBRATION_MEASURE_BACK))
-
-#if ENABLED(BACKLASH_GCODE)
-  extern float backlash_distance_mm[], backlash_correction, backlash_smoothing_mm;
-#endif
+#define HAS_X_CENTER BOTH(CALIBRATION_MEASURE_LEFT, CALIBRATION_MEASURE_RIGHT)
+#define HAS_Y_CENTER BOTH(CALIBRATION_MEASURE_FRONT, CALIBRATION_MEASURE_BACK)
 
 enum side_t : uint8_t { TOP, RIGHT, FRONT, LEFT, BACK, NUM_SIDES };
 
@@ -74,34 +74,19 @@ struct measurements_t {
   float nozzle_outer_dimension[2] = {CALIBRATION_NOZZLE_OUTER_DIAMETER, CALIBRATION_NOZZLE_OUTER_DIAMETER};
 };
 
-#define TEMPORARY_BED_LEVELING_STATE(enable) TemporaryBedLevelingState tbls(enable)
 #define TEMPORARY_SOFT_ENDSTOP_STATE(enable) REMEMBER(tes, soft_endstops_enabled, enable);
 
 #if ENABLED(BACKLASH_GCODE)
-  #define TEMPORARY_BACKLASH_CORRECTION(value) REMEMBER(tbst, backlash_correction, value)
+  #define TEMPORARY_BACKLASH_CORRECTION(value) REMEMBER(tbst, backlash.correction, value)
 #else
   #define TEMPORARY_BACKLASH_CORRECTION(value)
 #endif
 
 #if ENABLED(BACKLASH_GCODE) && defined(BACKLASH_SMOOTHING_MM)
-  #define TEMPORARY_BACKLASH_SMOOTHING(value) REMEMBER(tbsm, backlash_smoothing_mm, value)
+  #define TEMPORARY_BACKLASH_SMOOTHING(value) REMEMBER(tbsm, backlash.smoothing_mm, value)
 #else
   #define TEMPORARY_BACKLASH_SMOOTHING(value)
 #endif
-
-/**
- * A class to save and change the bed leveling state,
- * then restore it when it goes out of scope.
- */
-class TemporaryBedLevelingState {
-  bool saved;
-
-  public:
-    TemporaryBedLevelingState(const bool enable) : saved(planner.leveling_active) {
-      set_bed_leveling_enabled(enable);
-    }
-    ~TemporaryBedLevelingState() { set_bed_leveling_enabled(saved); }
-};
 
 /**
  * Move to a particular location. Up to three individual axes
@@ -120,9 +105,9 @@ inline void move_to(
   if (a3 != NO_AXIS) destination[a3] = p3;
 
   // Make sure coordinates are within bounds
-  destination[X_AXIS] = MAX(MIN(destination[X_AXIS], X_MAX_POS), X_MIN_POS);
-  destination[Y_AXIS] = MAX(MIN(destination[Y_AXIS], Y_MAX_POS), Y_MIN_POS);
-  destination[Z_AXIS] = MAX(MIN(destination[Z_AXIS], Z_MAX_POS), Z_MIN_POS);
+  destination[X_AXIS] = _MAX(_MIN(destination[X_AXIS], X_MAX_POS), X_MIN_POS);
+  destination[Y_AXIS] = _MAX(_MIN(destination[Y_AXIS], Y_MAX_POS), Y_MIN_POS);
+  destination[Z_AXIS] = _MAX(_MIN(destination[Z_AXIS], Z_MAX_POS), Z_MIN_POS);
 
   // Move to position
   do_blocking_move_to(destination, MMM_TO_MMS(CALIBRATION_FEEDRATE_TRAVEL));
@@ -143,18 +128,15 @@ inline void park_above_object(measurements_t &m, const float uncertainty) {
 }
 
 #if HOTENDS > 1
-
   inline void set_nozzle(measurements_t &m, const uint8_t extruder) {
     if (extruder != active_extruder) {
       park_above_object(m, CALIBRATION_MEASUREMENT_UNKNOWN);
       tool_change(extruder);
     }
   }
+#endif
 
-  inline void reset_nozzle_offsets() {
-    constexpr float tmp[XYZ][HOTENDS] = { HOTEND_OFFSET_X, HOTEND_OFFSET_Y, HOTEND_OFFSET_Z };
-    LOOP_XYZ(i) HOTEND_LOOP() hotend_offset[i][e] = tmp[i][e];
-  }
+#if HAS_HOTEND_OFFSET
 
   inline void normalize_hotend_offsets() {
     for (uint8_t e = 1; e < HOTENDS; e++) {
@@ -167,7 +149,7 @@ inline void park_above_object(measurements_t &m, const float uncertainty) {
     hotend_offset[Z_AXIS][0] = 0;
   }
 
-#endif // HOTENDS > 1
+#endif
 
 inline bool read_calibration_pin() {
   #if HAS_CALIBRATION_PIN
@@ -211,7 +193,7 @@ float measuring_movement(const AxisEnum axis, const int dir, const bool stop_sta
  *   axis               in     - Axis along which the measurement will take place
  *   dir                in     - Direction along that axis (-1 or 1)
  *   stop_state         in     - Move until probe pin becomes this value
- *   backlash_ptr       in/out - When not NULL, measure and record axis backlash
+ *   backlash_ptr       in/out - When not nullptr, measure and record axis backlash
  *   uncertainty        in     - If uncertainty is CALIBRATION_MEASUREMENT_UNKNOWN, do a fast probe.
  */
 inline float measure(const AxisEnum axis, const int dir, const bool stop_state, float * const backlash_ptr, const float uncertainty) {
@@ -414,14 +396,18 @@ inline void probe_sides(measurements_t &m, const float uncertainty) {
     SERIAL_ECHOLNPGM("Nozzle Tip Outer Dimensions:");
     #if HAS_X_CENTER
       SERIAL_ECHOLNPAIR(" X", m.nozzle_outer_dimension[X_AXIS]);
+    #else
+      UNUSED(m);
     #endif
     #if HAS_Y_CENTER
       SERIAL_ECHOLNPAIR(" Y", m.nozzle_outer_dimension[Y_AXIS]);
+    #else
+      UNUSED(m);
     #endif
     SERIAL_EOL();
   }
 
-  #if HOTENDS > 1
+  #if HAS_HOTEND_OFFSET
     //
     // This function requires normalize_hotend_offsets() to be called
     //
@@ -449,29 +435,29 @@ inline void calibrate_backlash(measurements_t &m, const float uncertainty) {
 
   {
     // New scope for TEMPORARY_BACKLASH_CORRECTION
-    TEMPORARY_BACKLASH_CORRECTION(0.0f);
+    TEMPORARY_BACKLASH_CORRECTION(all_off);
     TEMPORARY_BACKLASH_SMOOTHING(0.0f);
 
     probe_sides(m, uncertainty);
 
     #if ENABLED(BACKLASH_GCODE)
       #if HAS_X_CENTER
-        backlash_distance_mm[X_AXIS] = (m.backlash[LEFT] + m.backlash[RIGHT]) / 2;
+        backlash.distance_mm[X_AXIS] = (m.backlash[LEFT] + m.backlash[RIGHT]) / 2;
       #elif ENABLED(CALIBRATION_MEASURE_LEFT)
-        backlash_distance_mm[X_AXIS] = m.backlash[LEFT];
+        backlash.distance_mm[X_AXIS] = m.backlash[LEFT];
       #elif ENABLED(CALIBRATION_MEASURE_RIGHT)
-        backlash_distance_mm[X_AXIS] = m.backlash[RIGHT];
+        backlash.distance_mm[X_AXIS] = m.backlash[RIGHT];
       #endif
 
       #if HAS_Y_CENTER
-        backlash_distance_mm[Y_AXIS] = (m.backlash[FRONT] + m.backlash[BACK]) / 2;
+        backlash.distance_mm[Y_AXIS] = (m.backlash[FRONT] + m.backlash[BACK]) / 2;
       #elif ENABLED(CALIBRATION_MEASURE_FRONT)
-        backlash_distance_mm[Y_AXIS] = m.backlash[FRONT];
+        backlash.distance_mm[Y_AXIS] = m.backlash[FRONT];
       #elif ENABLED(CALIBRATION_MEASURE_BACK)
-        backlash_distance_mm[Y_AXIS] = m.backlash[BACK];
+        backlash.distance_mm[Y_AXIS] = m.backlash[BACK];
       #endif
 
-      backlash_distance_mm[Z_AXIS] = m.backlash[TOP];
+      backlash.distance_mm[Z_AXIS] = m.backlash[TOP];
     #endif
   }
 
@@ -481,7 +467,7 @@ inline void calibrate_backlash(measurements_t &m, const float uncertainty) {
 
     {
       // New scope for TEMPORARY_BACKLASH_CORRECTION
-      TEMPORARY_BACKLASH_CORRECTION(1.0f);
+      TEMPORARY_BACKLASH_CORRECTION(all_on);
       TEMPORARY_BACKLASH_SMOOTHING(0.0f);
       move_to(
         X_AXIS, current_position[X_AXIS] + 3,
@@ -516,17 +502,19 @@ inline void update_measurements(measurements_t &m, const AxisEnum axis) {
  *    - Call calibrate_backlash() beforehand for best accuracy
  */
 inline void calibrate_toolhead(measurements_t &m, const float uncertainty, const uint8_t extruder) {
-  TEMPORARY_BACKLASH_CORRECTION(1.0f);
+  TEMPORARY_BACKLASH_CORRECTION(all_on);
   TEMPORARY_BACKLASH_SMOOTHING(0.0f);
 
   #if HOTENDS > 1
     set_nozzle(m, extruder);
+  #else
+    UNUSED(extruder);
   #endif
 
   probe_sides(m, uncertainty);
 
   // Adjust the hotend offset
-  #if HOTENDS > 1
+  #if HAS_HOTEND_OFFSET
     #if HAS_X_CENTER
       hotend_offset[X_AXIS][extruder] += m.pos_error[X_AXIS];
     #endif
@@ -534,7 +522,6 @@ inline void calibrate_toolhead(measurements_t &m, const float uncertainty, const
       hotend_offset[Y_AXIS][extruder] += m.pos_error[Y_AXIS];
     #endif
     hotend_offset[Z_AXIS][extruder] += m.pos_error[Z_AXIS];
-
     normalize_hotend_offsets();
   #endif
 
@@ -560,13 +547,16 @@ inline void calibrate_toolhead(measurements_t &m, const float uncertainty, const
  *   uncertainty    in     - How far away from the object to begin probing
  */
 inline void calibrate_all_toolheads(measurements_t &m, const float uncertainty) {
-  TEMPORARY_BACKLASH_CORRECTION(1.0f);
+  TEMPORARY_BACKLASH_CORRECTION(all_on);
   TEMPORARY_BACKLASH_SMOOTHING(0.0f);
 
   HOTEND_LOOP() calibrate_toolhead(m, uncertainty, e);
 
-  #if HOTENDS > 1
+  #if HAS_HOTEND_OFFSET
     normalize_hotend_offsets();
+  #endif
+
+  #if HOTENDS > 1
     set_nozzle(m, 0);
   #endif
 }
@@ -585,11 +575,11 @@ inline void calibrate_all_toolheads(measurements_t &m, const float uncertainty) 
 inline void calibrate_all() {
   measurements_t m;
 
-  #if HOTENDS > 1
-    reset_nozzle_offsets();
+  #if HAS_HOTEND_OFFSET
+    reset_hotend_offsets();
   #endif
 
-  TEMPORARY_BACKLASH_CORRECTION(1.0f);
+  TEMPORARY_BACKLASH_CORRECTION(all_on);
   TEMPORARY_BACKLASH_SMOOTHING(0.0f);
 
   // Do a fast and rough calibration of the toolheads
@@ -643,7 +633,7 @@ void GcodeSuite::G425() {
       report_measured_backlash(m);
       report_measured_nozzle_dimensions(m);
       report_measured_positional_error(m);
-      #if HOTENDS > 1
+      #if HAS_HOTEND_OFFSET
         normalize_hotend_offsets();
         report_hotend_offsets();
       #endif

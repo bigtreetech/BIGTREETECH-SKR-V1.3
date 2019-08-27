@@ -1,7 +1,7 @@
 /**
  * Marlin 3D Printer Firmware
  *
- * Copyright (C) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (c) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  * Copyright (c) 2016 Bob Cousins bobcousins42@googlemail.com
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,15 +24,11 @@
  * HAL timers for Linux X86_64
  */
 
-// --------------------------------------------------------------------------
-// Includes
-// --------------------------------------------------------------------------
-
 #include <stdint.h>
 
-// --------------------------------------------------------------------------
+// ------------------------
 // Defines
-// --------------------------------------------------------------------------
+// ------------------------
 
 #define FORCE_INLINE __attribute__((always_inline)) inline
 
@@ -63,12 +59,12 @@ typedef uint32_t hal_timer_t;
 #define ENABLE_TEMPERATURE_INTERRUPT() HAL_timer_enable_interrupt(TEMP_TIMER_NUM)
 #define DISABLE_TEMPERATURE_INTERRUPT() HAL_timer_disable_interrupt(TEMP_TIMER_NUM)
 
-#define HAL_STEP_TIMER_ISR  extern "C" void TIMER0_IRQHandler(void)
-#define HAL_TEMP_TIMER_ISR  extern "C" void TIMER1_IRQHandler(void)
+#define HAL_STEP_TIMER_ISR()  extern "C" void TIMER0_IRQHandler(void)
+#define HAL_TEMP_TIMER_ISR()  extern "C" void TIMER1_IRQHandler(void)
 
 // PWM timer
 #define HAL_PWM_TIMER
-#define HAL_PWM_TIMER_ISR  extern "C" void TIMER3_IRQHandler(void)
+#define HAL_PWM_TIMER_ISR()   extern "C" void TIMER3_IRQHandler(void)
 #define HAL_PWM_TIMER_IRQn
 
 

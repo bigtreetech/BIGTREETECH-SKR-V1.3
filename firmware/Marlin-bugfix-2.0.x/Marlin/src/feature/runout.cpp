@@ -1,9 +1,9 @@
 /**
  * Marlin 3D Printer Firmware
- * Copyright (C) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (c) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
  * Based on Sprinter and grbl.
- * Copyright (C) 2011 Camiel Gubbels / Erik van der Zalm
+ * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ void FilamentSensorBase::filament_present(const uint8_t extruder) {
   uint8_t FilamentSensorEncoder::motion_detected;
 #endif
 
-#if FILAMENT_RUNOUT_DISTANCE_MM > 0
+#ifdef FILAMENT_RUNOUT_DISTANCE_MM
   float RunoutResponseDelayed::runout_distance_mm = FILAMENT_RUNOUT_DISTANCE_MM;
   volatile float RunoutResponseDelayed::runout_mm_countdown[EXTRUDERS];
 #else
