@@ -21,7 +21,7 @@
  */
 
 /**
- * ultralcd_DOGM.cpp
+ * lcd/dogm/ultralcd_DOGM.h
  *
  * Implementation of the LCD display routines for a DOGM128 graphic display.
  * by STB for ErikZalm/Marlin. Common LCD 128x64 pixel graphic displays.
@@ -30,9 +30,9 @@
  * License: http://opensource.org/licenses/BSD-3-Clause
  *
  * With the use of:
- * u8glib by Oliver Kraus
- * https://github.com/olikraus/U8glib_Arduino
- * License: http://opensource.org/licenses/BSD-3-Clause
+ *  u8glib by Oliver Kraus
+ *  https://github.com/olikraus/U8glib_Arduino
+ *  License: http://opensource.org/licenses/BSD-3-Clause
  */
 
 #include "../../inc/MarlinConfigPre.h"
@@ -60,7 +60,7 @@
 #endif
 
 #if ENABLED(AUTO_BED_LEVELING_UBL)
-  #include "../../feature/bedlevel/ubl/ubl.h"
+  #include "../../feature/bedlevel/bedlevel.h"
 #endif
 
 /**
@@ -81,7 +81,7 @@ U8G_CLASS u8g(U8G_PARAM);
 
 #if HAS_LCD_CONTRAST
 
-  int16_t MarlinUI::contrast; // Initialized by settings.load()
+  int16_t MarlinUI::contrast = DEFAULT_LCD_CONTRAST;
 
   void MarlinUI::set_contrast(const int16_t value) {
     contrast = constrain(value, LCD_CONTRAST_MIN, LCD_CONTRAST_MAX);
@@ -159,22 +159,19 @@ bool MarlinUI::detected() { return true; }
     }
   #endif // SHOW_CUSTOM_BOOTSCREEN
 
-  // Draws a slice of the Marlin bootscreen, without the u8g loop
-  void MarlinUI::draw_marlin_bootscreen() {
-    // Screen dimensions.
-    //const u8g_uint_t width = u8g.getWidth(), height = u8g.getHeight();
-    constexpr u8g_uint_t width = LCD_PIXEL_WIDTH, height = LCD_PIXEL_HEIGHT;
+  // Two-part needed to display all info
+  constexpr bool two_part = ((LCD_PIXEL_HEIGHT) - (START_BMPHEIGHT)) < ((MENU_FONT_ASCENT) * 2);
+
+  // Draw the static Marlin bootscreen from a u8g loop
+  // or the animated boot screen within its own u8g loop
+  void MarlinUI::draw_marlin_bootscreen(const bool line2/*=false*/) {
 
     // Determine text space needed
-    #ifndef STRING_SPLASH_LINE2
-      constexpr u8g_uint_t text_total_height = MENU_FONT_HEIGHT,
-                           text_width_2 = 0;
-    #else
-      constexpr u8g_uint_t text_total_height = (MENU_FONT_HEIGHT) * 2,
-                           text_width_2 = u8g_uint_t((sizeof(STRING_SPLASH_LINE2) - 1) * (MENU_FONT_WIDTH));
-    #endif
-    constexpr u8g_uint_t text_width_1 = u8g_uint_t((sizeof(STRING_SPLASH_LINE1) - 1) * (MENU_FONT_WIDTH)),
+    constexpr u8g_uint_t text_width_1 = u8g_uint_t((sizeof(SHORT_BUILD_VERSION) - 1) * (MENU_FONT_WIDTH)),
+                         text_width_2 = u8g_uint_t((sizeof(MARLIN_WEBSITE_URL) - 1) * (MENU_FONT_WIDTH)),
                          text_max_width = _MAX(text_width_1, text_width_2),
+                         text_total_height = (MENU_FONT_HEIGHT) * 2,
+                         width = LCD_PIXEL_WIDTH, height = LCD_PIXEL_HEIGHT,
                          rspace = width - (START_BMPWIDTH);
 
     u8g_int_t offx, offy, txt_base, txt_offx_1, txt_offx_2;
@@ -189,8 +186,8 @@ bool MarlinUI::detected() { return true; }
     }
     else {
       constexpr int8_t inter = (height - text_total_height - (START_BMPHEIGHT)) / 3; // Evenly distribute vertical space
-      offy = inter;                             // V-align boot logo proportionally
       offx = rspace / 2;                        // Center the boot logo in the whole space
+      offy = inter;                             // V-align boot logo proportionally
       txt_offx_1 = (width - text_width_1) / 2;  // Text 1 centered
       txt_offx_2 = (width - text_width_2) / 2;  // Text 2 centered
       txt_base = offy + START_BMPHEIGHT + offy + text_total_height - (MENU_FONT_DESCENT);   // Even spacing looks best
@@ -198,15 +195,15 @@ bool MarlinUI::detected() { return true; }
     NOLESS(offx, 0);
     NOLESS(offy, 0);
 
-    auto draw_bootscreen_bmp = [&](const uint8_t *bitmap) {
+    auto _draw_bootscreen_bmp = [&](const uint8_t *bitmap) {
       u8g.drawBitmapP(offx, offy, START_BMP_BYTEWIDTH, START_BMPHEIGHT, bitmap);
       set_font(FONT_MENU);
-      #ifndef STRING_SPLASH_LINE2
-        lcd_put_u8str_P(txt_offx_1, txt_base, PSTR(STRING_SPLASH_LINE1));
-      #else
-        lcd_put_u8str_P(txt_offx_1, txt_base - (MENU_FONT_HEIGHT), PSTR(STRING_SPLASH_LINE1));
-        lcd_put_u8str_P(txt_offx_2, txt_base, PSTR(STRING_SPLASH_LINE2));
-      #endif
+      if (!two_part || !line2) lcd_put_u8str_P(txt_offx_1, txt_base - (MENU_FONT_HEIGHT), PSTR(SHORT_BUILD_VERSION));
+      if (!two_part || line2) lcd_put_u8str_P(txt_offx_2, txt_base, PSTR(MARLIN_WEBSITE_URL));
+    };
+
+    auto draw_bootscreen_bmp = [&](const uint8_t *bitmap) {
+      u8g.firstPage(); do { _draw_bootscreen_bmp(bitmap); } while (u8g.nextPage());
     };
 
     #if DISABLED(BOOT_MARLIN_LOGO_ANIMATED)
@@ -214,24 +211,22 @@ bool MarlinUI::detected() { return true; }
     #else
       constexpr millis_t d = MARLIN_BOOTSCREEN_FRAME_TIME;
       LOOP_L_N(f, COUNT(marlin_bootscreen_animation)) {
-        u8g.firstPage();
-        do {
-          const u8g_pgm_uint8_t * const bmp = (u8g_pgm_uint8_t*)pgm_read_ptr(&marlin_bootscreen_animation[f]);
-          draw_bootscreen_bmp(bmp);
-        } while (u8g.nextPage());
+        draw_bootscreen_bmp((uint8_t*)pgm_read_ptr(&marlin_bootscreen_animation[f]));
         if (d) safe_delay(d);
       }
     #endif
   }
 
-  // Shows the Marlin bootscreen, with the u8g loop and delays
+  // Show the Marlin bootscreen, with the u8g loop and delays
   void MarlinUI::show_marlin_bootscreen() {
     #ifndef BOOTSCREEN_TIMEOUT
       #define BOOTSCREEN_TIMEOUT 2500
     #endif
-    u8g.firstPage();
-    do { draw_marlin_bootscreen(); } while (u8g.nextPage());
-    safe_delay(BOOTSCREEN_TIMEOUT);
+    constexpr uint8_t pages = two_part ? 2 : 1;
+    for (uint8_t q = pages; q--;) {
+      draw_marlin_bootscreen(q == 0);
+      safe_delay((BOOTSCREEN_TIMEOUT) / pages);
+    }
   }
 
   void MarlinUI::show_bootscreen() {
@@ -305,14 +300,16 @@ void MarlinUI::draw_kill_screen() {
   do {
     set_font(FONT_MENU);
     lcd_put_u8str(0, h4 * 1, status_message);
-    lcd_put_u8str_P(0, h4 * 2, PSTR(MSG_HALTED));
-    lcd_put_u8str_P(0, h4 * 3, PSTR(MSG_PLEASE_RESET));
+    lcd_put_u8str_P(0, h4 * 2, GET_TEXT(MSG_HALTED));
+    lcd_put_u8str_P(0, h4 * 3, GET_TEXT(MSG_PLEASE_RESET));
   } while (u8g.nextPage());
 }
 
 void MarlinUI::clear_lcd() { } // Automatically cleared by Picture Loop
 
 #if HAS_LCD_MENU
+
+  #include "../menu/menu.h"
 
   u8g_uint_t row_y1, row_y2;
 
@@ -366,29 +363,26 @@ void MarlinUI::clear_lcd() { } // Automatically cleared by Picture Loop
   }
 
   // Draw a static line of text in the same idiom as a menu item
-  void draw_menu_item_static(const uint8_t row, PGM_P pstr, const bool center/*=true*/, const bool invert/*=false*/, const char* valstr/*=nullptr*/) {
+  void MenuItem_static::draw(const uint8_t row, PGM_P const pstr, const uint8_t style/*=SS_DEFAULT*/, const char * const valstr/*=nullptr*/) {
 
-    if (mark_as_selected(row, invert)) {
+    if (mark_as_selected(row, style & SS_INVERT)) {
 
       u8g_uint_t n = LCD_PIXEL_WIDTH; // pixel width of string allowed
 
-      if (center && !valstr) {
+      if ((style & SS_CENTER) && !valstr) {
         int8_t pad = (LCD_WIDTH - utf8_strlen_P(pstr)) / 2;
         while (--pad >= 0) { lcd_put_wchar(' '); n--; }
       }
-      n -= lcd_put_u8str_max_P(pstr, n);
+      n = lcd_put_u8str_ind_P(pstr, itemIndex, LCD_WIDTH) * (MENU_FONT_WIDTH);
       if (valstr) n -= lcd_put_u8str_max(valstr, n);
       while (n > MENU_FONT_WIDTH) n -= lcd_put_wchar(' ');
     }
   }
 
   // Draw a generic menu item
-  void draw_menu_item(const bool sel, const uint8_t row, PGM_P const pstr, const char pre_char, const char post_char) {
-    UNUSED(pre_char);
-
+  void MenuItemBase::_draw(const bool sel, const uint8_t row, PGM_P const pstr, const char, const char post_char) {
     if (mark_as_selected(row, sel)) {
-      u8g_uint_t n = (LCD_WIDTH - 2) * (MENU_FONT_WIDTH);
-      n -= lcd_put_u8str_max_P(pstr, n);
+      u8g_uint_t n = lcd_put_u8str_ind_P(pstr, itemIndex, LCD_WIDTH - 2) * (MENU_FONT_WIDTH);
       while (n > MENU_FONT_WIDTH) n -= lcd_put_wchar(' ');
       lcd_put_wchar(LCD_PIXEL_WIDTH - (MENU_FONT_WIDTH), row_y2, post_char);
       lcd_put_wchar(' ');
@@ -396,19 +390,20 @@ void MarlinUI::clear_lcd() { } // Automatically cleared by Picture Loop
   }
 
   // Draw a menu item with an editable value
-  void _draw_menu_item_edit(const bool sel, const uint8_t row, PGM_P const pstr, const char* const data, const bool pgm) {
+  void MenuEditItemBase::draw(const bool sel, const uint8_t row, PGM_P const pstr, const char* const data, const bool pgm) {
     if (mark_as_selected(row, sel)) {
       const uint8_t vallen = (pgm ? utf8_strlen_P(data) : utf8_strlen((char*)data));
-      u8g_uint_t n = (LCD_WIDTH - 2 - vallen) * (MENU_FONT_WIDTH);
-      n -= lcd_put_u8str_max_P(pstr, n);
-      lcd_put_wchar(':');
-      while (n > MENU_FONT_WIDTH) n -= lcd_put_wchar(' ');
-      lcd_moveto(LCD_PIXEL_WIDTH - (MENU_FONT_WIDTH) * vallen, row_y2);
-      if (pgm) lcd_put_u8str_P(data); else lcd_put_u8str((char*)data);
+      u8g_uint_t n = lcd_put_u8str_ind_P(pstr, itemIndex, LCD_WIDTH - 2 - vallen) * (MENU_FONT_WIDTH);
+      if (vallen) {
+        lcd_put_wchar(':');
+        while (n > MENU_FONT_WIDTH) n -= lcd_put_wchar(' ');
+        lcd_moveto(LCD_PIXEL_WIDTH - (MENU_FONT_WIDTH) * vallen, row_y2);
+        if (pgm) lcd_put_u8str_P(data); else lcd_put_u8str((char*)data);
+      }
     }
   }
 
-  void draw_edit_screen(PGM_P const pstr, const char* const value/*=nullptr*/) {
+  void MenuEditItemBase::draw_edit_screen(PGM_P const pstr, const char* const value/*=nullptr*/) {
     ui.encoder_direction_normal();
 
     const u8g_uint_t labellen = utf8_strlen_P(pstr), vallen = utf8_strlen(value);
@@ -440,7 +435,7 @@ void MarlinUI::clear_lcd() { } // Automatically cleared by Picture Loop
 
     // Assume the label is alpha-numeric (with a descender)
     bool onpage = PAGE_CONTAINS(baseline - (EDIT_FONT_ASCENT - 1), baseline + EDIT_FONT_DESCENT);
-    if (onpage) lcd_put_u8str_P(0, baseline, pstr);
+    if (onpage) lcd_put_u8str_ind_P(0, baseline, pstr, itemIndex);
 
     // If a value is included, print a colon, then print the value right-justified
     if (value != nullptr) {
@@ -469,7 +464,7 @@ void MarlinUI::clear_lcd() { } // Automatically cleared by Picture Loop
     if (inv) u8g.setColorIndex(1);
   }
 
-  void draw_select_screen(PGM_P const yes, PGM_P const no, const bool yesno, PGM_P const pref, const char * const string, PGM_P const suff) {
+  void MenuItem_confirm::draw_select_screen(PGM_P const yes, PGM_P const no, const bool yesno, PGM_P const pref, const char * const string/*=nullptr*/, PGM_P const suff/*=nullptr*/) {
     ui.draw_select_screen_prompt(pref, string, suff);
     draw_boxed_string(1, LCD_HEIGHT - 1, no, !yesno);
     draw_boxed_string(LCD_WIDTH - (utf8_strlen_P(yes) + 1), LCD_HEIGHT - 1, yes, yesno);
@@ -477,9 +472,7 @@ void MarlinUI::clear_lcd() { } // Automatically cleared by Picture Loop
 
   #if ENABLED(SDSUPPORT)
 
-    void draw_sd_menu_item(const bool sel, const uint8_t row, PGM_P const pstr, CardReader &theCard, const bool isDir) {
-      UNUSED(pstr);
-
+    void MenuItem_sdbase::draw(const bool sel, const uint8_t row, PGM_P const, CardReader &theCard, const bool isDir) {
       if (mark_as_selected(row, sel)) {
         if (isDir) lcd_put_wchar(LCD_STR_FOLDER[0]);
         constexpr uint8_t maxlen = LCD_WIDTH - 1;
@@ -550,10 +543,12 @@ void MarlinUI::clear_lcd() { } // Automatically cleared by Picture Loop
       // Show X and Y positions at top of screen
       u8g.setColorIndex(1);
       if (PAGE_UNDER(7)) {
+        const xy_pos_t pos = { ubl.mesh_index_to_xpos(x_plot), ubl.mesh_index_to_ypos(y_plot) },
+                       lpos = pos.asLogical();
         lcd_put_u8str(5, 7, "X:");
-        lcd_put_u8str(ftostr52(LOGICAL_X_POSITION(pgm_read_float(&ubl._mesh_index_to_xpos[x_plot]))));
+        lcd_put_u8str(ftostr52(lpos.x));
         lcd_put_u8str(74, 7, "Y:");
-        lcd_put_u8str(ftostr52(LOGICAL_Y_POSITION(pgm_read_float(&ubl._mesh_index_to_ypos[y_plot]))));
+        lcd_put_u8str(ftostr52(lpos.y));
       }
 
       // Print plot position
@@ -579,20 +574,20 @@ void MarlinUI::clear_lcd() { } // Automatically cleared by Picture Loop
   #if EITHER(BABYSTEP_ZPROBE_GFX_OVERLAY, MESH_EDIT_GFX_OVERLAY)
 
     const unsigned char cw_bmp[] PROGMEM = {
-      B00000001,B11111100,B00000000,
-      B00000111,B11111111,B00000000,
-      B00001111,B00000111,B10000000,
-      B00001110,B00000001,B11000000,
-      B00000000,B00000001,B11000000,
+      B00000000,B11111110,B00000000,
+      B00000011,B11111111,B10000000,
+      B00000111,B11000111,B11000000,
+      B00000111,B00000001,B11100000,
       B00000000,B00000000,B11100000,
-      B00001000,B00000000,B11100000,
-      B00011100,B00000000,B11100000,
-      B00111110,B00000000,B11100000,
-      B01111111,B00000000,B11100000,
-      B00011100,B00000000,B11100000,
+      B00000000,B00000000,B11110000,
+      B00000000,B00000000,B01110000,
+      B00000100,B00000000,B01110000,
+      B00001110,B00000000,B01110000,
+      B00011111,B00000000,B01110000,
+      B00111111,B10000000,B11110000,
       B00001110,B00000000,B11100000,
-      B00001110,B00000001,B11000000,
-      B00000111,B10000011,B11000000,
+      B00001111,B00000001,B11100000,
+      B00000111,B11000111,B11000000,
       B00000011,B11111111,B10000000,
       B00000000,B11111110,B00000000
     };
@@ -600,20 +595,20 @@ void MarlinUI::clear_lcd() { } // Automatically cleared by Picture Loop
     const unsigned char ccw_bmp[] PROGMEM = {
       B00000000,B11111110,B00000000,
       B00000011,B11111111,B10000000,
-      B00000111,B10000011,B11000000,
-      B00001110,B00000001,B11000000,
+      B00000111,B11000111,B11000000,
+      B00001111,B00000001,B11100000,
       B00001110,B00000000,B11100000,
-      B00011100,B00000000,B11100000,
-      B01111111,B00000000,B11100000,
-      B00111110,B00000000,B11100000,
-      B00011100,B00000000,B11100000,
-      B00001000,B00000000,B11100000,
+      B00111111,B10000000,B11110000,
+      B00011111,B00000000,B01110000,
+      B00001110,B00000000,B01110000,
+      B00000100,B00000000,B01110000,
+      B00000000,B00000000,B01110000,
+      B00000000,B00000000,B11110000,
       B00000000,B00000000,B11100000,
-      B00000000,B00000001,B11000000,
-      B00001110,B00000001,B11000000,
-      B00001111,B00000111,B10000000,
-      B00000111,B11111111,B00000000,
-      B00000001,B11111100,B00000000
+      B00000111,B00000001,B11100000,
+      B00000111,B11000111,B11000000,
+      B00000011,B11111111,B10000000,
+      B00000000,B11111110,B00000000
     };
 
     const unsigned char up_arrow_bmp[] PROGMEM = {

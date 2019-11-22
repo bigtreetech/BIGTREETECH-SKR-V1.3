@@ -5,6 +5,7 @@
 /****************************************************************************
  *   Written By Mark Pelletier  2017 - Aleph Objects, Inc.                  *
  *   Written By Marcio Teixeira 2018 - Aleph Objects, Inc.                  *
+ *   Written By Marcio Teixeira 2019 - Cocoa Press                          *
  *                                                                          *
  *   This program is free software: you can redistribute it and/or modify   *
  *   it under the terms of the GNU General Public License as published by   *
@@ -29,13 +30,22 @@
 #include "../ftdi_eve_lib/extras/poly_ui.h"
 #include "../archim2-flash/flash_storage.h"
 
-#ifdef TOUCH_UI_PORTRAIT
-  #include "../theme/bootscreen_logo_portrait.h"
+#ifdef SHOW_CUSTOM_BOOTSCREEN
+  #ifdef TOUCH_UI_PORTRAIT
+    #include "../theme/_bootscreen_portrait.h"
+  #else
+    #include "../theme/_bootscreen_landscape.h"
+  #endif
 #else
-  #include "../theme/bootscreen_logo_landscape.h"
+  #ifdef TOUCH_UI_PORTRAIT
+    #include "../theme/marlin_bootscreen_portrait.h"
+  #else
+    #include "../theme/marlin_bootscreen_landscape.h"
+  #endif
 #endif
 
 using namespace FTDI;
+using namespace Theme;
 
 void BootScreen::onRedraw(draw_mode_t) {
   CommandProcessor cmd;
@@ -57,12 +67,15 @@ void BootScreen::onIdle() {
     // in case the display is borked.
     InterfaceSettingsScreen::failSafeSettings();
 
+    StatusScreen::loadBitmaps();
     GOTO_SCREEN(TouchCalibrationScreen);
     current_screen.forget();
     PUSH_SCREEN(StatusScreen);
+    StatusScreen::setStatusMessage(GET_TEXT_F(WELCOME_MSG));
   } else {
     if (!UIFlashStorage::is_valid()) {
-      SpinnerDialogBox::show(F("Please wait..."));
+      StatusScreen::loadBitmaps();
+      SpinnerDialogBox::show(GET_TEXT_F(MSG_PLEASE_WAIT));
       UIFlashStorage::format_flash();
       SpinnerDialogBox::hide();
     }
@@ -73,12 +86,19 @@ void BootScreen::onIdle() {
       if (!MediaPlayerScreen::playBootMedia())
         showSplashScreen();
     }
-    #ifdef LULZBOT_USE_BIOPRINTER_UI
+
+    StatusScreen::loadBitmaps();
+
+    #ifdef TOUCH_UI_LULZBOT_BIO
       GOTO_SCREEN(BioConfirmHomeXYZ);
       current_screen.forget();
       PUSH_SCREEN(StatusScreen);
       PUSH_SCREEN(BioConfirmHomeE);
+    #elif NUM_LANGUAGES > 1
+      StatusScreen::setStatusMessage(GET_TEXT_F(WELCOME_MSG));
+      GOTO_SCREEN(LanguageMenu);
     #else
+      StatusScreen::setStatusMessage(GET_TEXT_F(WELCOME_MSG));
       GOTO_SCREEN(StatusScreen);
     #endif
   }
@@ -87,21 +107,15 @@ void BootScreen::onIdle() {
 void BootScreen::showSplashScreen() {
   CommandProcessor cmd;
   cmd.cmd(CMD_DLSTART);
-  cmd.cmd(CLEAR_COLOR_RGB(0xDEEA5C));
+  cmd.cmd(CLEAR_COLOR_RGB(LOGO_BACKGROUND));
   cmd.cmd(CLEAR(true,true,true));
 
   #define POLY(A) PolyUI::poly_reader_t(A, sizeof(A)/sizeof(A[0]))
+  #define LOGO_PAINT_PATH(rgb, path) cmd.cmd(COLOR_RGB(rgb)); ui.fill(POLY(path));
 
   PolyUI ui(cmd);
 
-  cmd.cmd(COLOR_RGB(0xC1D82F));
-  ui.fill(POLY(logo_green));
-  cmd.cmd(COLOR_RGB(0x000000));
-  ui.fill(POLY(logo_black));
-  ui.fill(POLY(logo_type));
-  ui.fill(POLY(logo_mark));
-  cmd.cmd(COLOR_RGB(0xFFFFFF));
-  ui.fill(POLY(logo_white));
+  LOGO_PAINT_PATHS
 
   cmd.cmd(DL::DL_DISPLAY);
   cmd.cmd(CMD_SWAP);

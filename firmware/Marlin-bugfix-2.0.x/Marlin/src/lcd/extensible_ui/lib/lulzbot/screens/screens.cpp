@@ -31,6 +31,9 @@ screen_data_t screen_data;
 
 SCREEN_TABLE {
   DECL_SCREEN(BootScreen),
+  #if NUM_LANGUAGES > 1
+    DECL_SCREEN(LanguageMenu),
+  #endif
   DECL_SCREEN(TouchCalibrationScreen),
   DECL_SCREEN(StatusScreen),
   DECL_SCREEN(MainMenu),
@@ -40,6 +43,7 @@ SCREEN_TABLE {
   DECL_SCREEN(ConfirmUserRequestAlertBox),
   DECL_SCREEN(RestoreFailsafeDialogBox),
   DECL_SCREEN(SaveSettingsDialogBox),
+  DECL_SCREEN(ConfirmStartPrintDialogBox),
   DECL_SCREEN(ConfirmAbortPrintDialogBox),
 #if ENABLED(CALIBRATION_GCODE)
   DECL_SCREEN(ConfirmAutoCalibrationDialogBox),
@@ -71,12 +75,12 @@ SCREEN_TABLE {
   DECL_SCREEN(MaxVelocityScreen),
   DECL_SCREEN(MaxAccelerationScreen),
   DECL_SCREEN(DefaultAccelerationScreen),
-#if ENABLED(JUNCTION_DEVIATION)
+#if DISABLED(CLASSIC_JERK)
   DECL_SCREEN(JunctionDeviationScreen),
 #else
   DECL_SCREEN(JerkScreen),
 #endif
-#if ENABLED(LIN_ADVANCE) || ENABLED(FILAMENT_RUNOUT_SENSOR)
+#if EITHER(LIN_ADVANCE, FILAMENT_RUNOUT_SENSOR)
   DECL_SCREEN(FilamentMenu),
 #endif
 #if ENABLED(FILAMENT_RUNOUT_SENSOR)
@@ -92,12 +96,12 @@ SCREEN_TABLE {
   DECL_SCREEN(LockScreen),
   DECL_SCREEN(FilesScreen),
   DECL_SCREEN(EndstopStatesScreen),
-#ifdef LULZBOT_USE_BIOPRINTER_UI
+#ifdef TOUCH_UI_LULZBOT_BIO
   DECL_SCREEN(BioPrintingDialogBox),
   DECL_SCREEN(BioConfirmHomeXYZ),
   DECL_SCREEN(BioConfirmHomeE),
 #endif
-#if ENABLED(DEVELOPER_SCREENS)
+#if ENABLED(TOUCH_UI_DEVELOPER_MENU)
   DECL_SCREEN(DeveloperMenu),
   DECL_SCREEN(ConfirmEraseFlashDialogBox),
   DECL_SCREEN(WidgetsScreen),

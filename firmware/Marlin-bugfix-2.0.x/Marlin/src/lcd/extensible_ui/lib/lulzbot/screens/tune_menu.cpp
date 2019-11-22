@@ -22,7 +22,7 @@
 
 #include "../config.h"
 
-#if ENABLED(LULZBOT_TOUCH_UI) && !defined(LULZBOT_USE_BIOPRINTER_UI)
+#if ENABLED(LULZBOT_TOUCH_UI) && !defined(TOUCH_UI_LULZBOT_BIO)
 
 #include "screens.h"
 
@@ -33,8 +33,7 @@ void TuneMenu::onRedraw(draw_mode_t what) {
   if (what & BACKGROUND) {
     CommandProcessor cmd;
     cmd.cmd(CLEAR_COLOR_RGB(bg_color))
-       .cmd(CLEAR(true,true,true))
-       .font(font_medium);
+       .cmd(CLEAR(true,true,true));
   }
 
   #ifdef TOUCH_UI_PORTRAIT
@@ -52,79 +51,79 @@ void TuneMenu::onRedraw(draw_mode_t what) {
     cmd.colors(normal_btn)
        .font(font_medium)
     #ifdef TOUCH_UI_PORTRAIT
-       .tag(2).enabled(1)      .button( BTN_POS(1,1), BTN_SIZE(2,1), F("Temperature"))
-       .tag(3).enabled(!isPrinting()).button( BTN_POS(1,2), BTN_SIZE(2,1), F("Change Filament"))
-       #if ENABLED(LIN_ADVANCE) || ENABLED(FILAMENT_RUNOUT_SENSOR)
+       .tag(2).enabled(1)      .button( BTN_POS(1,1), BTN_SIZE(2,1), GET_TEXT_F(MSG_TEMPERATURE))
+       .tag(3).enabled(!isPrinting()).button( BTN_POS(1,2), BTN_SIZE(2,1), GET_TEXT_F(MSG_FILAMENTCHANGE))
+       #if EITHER(LIN_ADVANCE, FILAMENT_RUNOUT_SENSOR)
           .enabled(1)
         #else
           .enabled(0)
         #endif
-       .tag(9).button( BTN_POS(1,3), BTN_SIZE(2,1), F("Filament Options"))
+       .tag(9).button( BTN_POS(1,3), BTN_SIZE(2,1), GET_TEXT_F(MSG_FILAMENT))
       #if ENABLED(BABYSTEPPING)
-       .tag(4).enabled(1)      .button( BTN_POS(1,4), BTN_SIZE(2,1), F("Nudge Nozzle"))
+       .tag(4).enabled(1)      .button( BTN_POS(1,4), BTN_SIZE(2,1), GET_TEXT_F(MSG_NUDGE_NOZZLE))
       #else
         #if HAS_BED_PROBE
           .enabled(1)
         #else
           .enabled(0)
         #endif
-       .tag(4)                 .button( BTN_POS(1,4), BTN_SIZE(2,1), F("Adjust Z-Offset"))
+       .tag(4)                 .button( BTN_POS(1,4), BTN_SIZE(2,1), GET_TEXT_F(MSG_ZPROBE_ZOFFSET))
       #endif
-       .tag(5).enabled(1)      .button( BTN_POS(1,5), BTN_SIZE(2,1), F("Print Speed"))
+       .tag(5).enabled(1)      .button( BTN_POS(1,5), BTN_SIZE(2,1), GET_TEXT_F(MSG_PRINT_SPEED))
        .tag(isPrintingFromMediaPaused() ? 7 : 6)
       #if ENABLED(SDSUPPORT)
         .enabled(isPrintingFromMedia())
       #else
         .enabled(0)
       #endif
-        .button( BTN_POS(1,6), BTN_SIZE(2,1), isPrintingFromMediaPaused() ? F("Resume Print") : F("Pause Print"))
+        .button( BTN_POS(1,6), BTN_SIZE(2,1), isPrintingFromMediaPaused() ? GET_TEXT_F(MSG_RESUME_PRINT) : GET_TEXT_F(MSG_PAUSE_PRINT))
       #if ENABLED(SDSUPPORT)
         .enabled(isPrintingFromMedia())
       #else
         .enabled(0)
       #endif
-      .tag(8)             .button( BTN_POS(1,7), BTN_SIZE(2,1), F("Cancel Print"))
+      .tag(8)             .button( BTN_POS(1,7), BTN_SIZE(2,1), GET_TEXT_F(MSG_STOP_PRINT))
       .tag(1).colors(action_btn)
-                          .button( BTN_POS(1,8), BTN_SIZE(2,1), F("Back"));
+                          .button( BTN_POS(1,8), BTN_SIZE(2,1), GET_TEXT_F(MSG_BACK));
     #else // TOUCH_UI_PORTRAIT
-       .tag(2).enabled(1) .button( BTN_POS(1,1), BTN_SIZE(1,1), F("Temperature"))
-       .tag(3).enabled(!isPrinting()).button( BTN_POS(1,2), BTN_SIZE(1,1), F("Change Filament"))
+       .tag(2).enabled(1) .button( BTN_POS(1,1), BTN_SIZE(1,1), GET_TEXT_F(MSG_TEMPERATURE))
+       .tag(3).enabled(!isPrinting()).button( BTN_POS(1,2), BTN_SIZE(1,1), GET_TEXT_F(MSG_FILAMENTCHANGE))
       #if ENABLED(BABYSTEPPING)
        .enabled(1)
       #else
        .enabled(0)
       #endif
         #if ENABLED(BABYSTEPPING)
-          .tag(4)         .button( BTN_POS(2,1), BTN_SIZE(1,1), F("Nudge Nozzle"))
+          .tag(4)         .button( BTN_POS(2,1), BTN_SIZE(1,1), GET_TEXT_F(MSG_NUDGE_NOZZLE))
         #else
           #if HAS_BED_PROBE
             .enabled(1)
           #else
             .enabled(0)
           #endif
-          .tag(4)         .button( BTN_POS(1,4), BTN_SIZE(2,1), F("Adjust Z-Offset"))
+          .tag(4)         .button( BTN_POS(1,4), BTN_SIZE(2,1), GET_TEXT_F(MSG_ZPROBE_ZOFFSET))
         #endif
-       .tag(5).enabled(1) .button( BTN_POS(2,2), BTN_SIZE(1,1), F("Print Speed"))
+       .tag(5).enabled(1) .button( BTN_POS(2,2), BTN_SIZE(1,1), GET_TEXT_F(MSG_PRINT_SPEED))
        .tag(isPrintingFromMediaPaused() ? 7 : 6)
       #if ENABLED(SDSUPPORT)
         .enabled(isPrintingFromMedia())
       #else
         .enabled(0)
       #endif
-                          .button( BTN_POS(1,3), BTN_SIZE(1,1), isPrintingFromMediaPaused() ? F("Resume Print") : F("Pause Print"))
+                          .button( BTN_POS(1,3), BTN_SIZE(1,1), isPrintingFromMediaPaused() ? GET_TEXT_F(MSG_RESUME_PRINT) : GET_TEXT_F(MSG_PAUSE_PRINT))
       #if ENABLED(SDSUPPORT)
         .enabled(isPrintingFromMedia())
       #else
         .enabled(0)
       #endif
-       .tag(8).           button( BTN_POS(2,3), BTN_SIZE(1,1), F("Cancel Print"))
+       .tag(8).           button( BTN_POS(2,3), BTN_SIZE(1,1), GET_TEXT_F(MSG_STOP_PRINT))
        #if ENABLED(LIN_ADVANCE) || ENABLED(FILAMENT_RUNOUT_SENSOR)
           .enabled(1)
         #else
           .enabled(0)
         #endif
-       .tag(9).button( BTN_POS(1,4), BTN_SIZE(1,1), F("Filament Options"))
-       .tag(1).colors(action_btn) .button( BTN_POS(2,4), BTN_SIZE(1,1), F("Back"));
+       .tag(9).button( BTN_POS(1,4), BTN_SIZE(1,1), GET_TEXT_F(MSG_FILAMENT))
+       .tag(1).colors(action_btn) .button( BTN_POS(2,4), BTN_SIZE(1,1), GET_TEXT_F(MSG_BACK));
     #endif
   }
   #undef GRID_COLS
@@ -141,10 +140,8 @@ bool TuneMenu::onTouchEnd(uint8_t tag) {
     case 4:
       #if ENABLED(BABYSTEPPING)
         GOTO_SCREEN(NudgeNozzleScreen);
-      #else
-        #if HAS_BED_PROBE
-          GOTO_SCREEN(ZOffsetScreen);
-        #endif
+      #elif HAS_BED_PROBE
+        GOTO_SCREEN(ZOffsetScreen);
       #endif
       break;
     case 5:  GOTO_SCREEN(FeedratePercentScreen);     break;
@@ -155,7 +152,7 @@ bool TuneMenu::onTouchEnd(uint8_t tag) {
       current_screen.forget();
       PUSH_SCREEN(StatusScreen);
       break;
-    #if ENABLED(LIN_ADVANCE) || ENABLED(FILAMENT_RUNOUT_SENSOR)
+    #if EITHER(LIN_ADVANCE, FILAMENT_RUNOUT_SENSOR)
     case 9:  GOTO_SCREEN(FilamentMenu); break;
     #endif
     default:

@@ -22,14 +22,14 @@
 
 #include "../config.h"
 
-#if ENABLED(LULZBOT_TOUCH_UI) && defined(LULZBOT_USE_BIOPRINTER_UI)
+#if ENABLED(LULZBOT_TOUCH_UI) && defined(TOUCH_UI_LULZBOT_BIO)
 
 #include "screens.h"
 
 using namespace FTDI;
 
 void BioConfirmHomeXYZ::onRedraw(draw_mode_t) {
-  drawMessage(F("About to home to loading position.\nEnsure the top and the bed of the printer are clear.\n\nContinue?"));
+  drawMessage(GET_TEXT_F(MSG_HOME_XYZ_WARNING));
   drawYesNoButtons(1);
 }
 
@@ -37,8 +37,8 @@ bool BioConfirmHomeXYZ::onTouchEnd(uint8_t tag) {
   switch (tag) {
     case 1:
       SpinnerDialogBox::enqueueAndWait_P(F(
-        "G28 X Y Z\n"             /* Home all axis */
-        "G0 X115 Z50 F6000"       /* Move to park position */
+       "G28\n"
+       PARK_AND_RELEASE_COMMANDS
       ));
       current_screen.forget();
       break;

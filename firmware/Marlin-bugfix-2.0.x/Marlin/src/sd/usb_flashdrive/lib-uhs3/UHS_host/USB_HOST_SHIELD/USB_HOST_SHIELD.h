@@ -28,10 +28,10 @@ e-mail   :  support@circuitsathome.com
 #include <SPI.h>
 
 
-#if !defined(SPI_HAS_TRANSACTION)
+#ifndef SPI_HAS_TRANSACTION
 #error "Your SPI library installation is too old."
 #else
-#if !defined(SPI_ATOMIC_VERSION)
+#ifndef SPI_ATOMIC_VERSION
 #warning "Your SPI library installation lacks 'SPI_ATOMIC_VERSION'. Please complain to the maintainer."
 #elif SPI_ATOMIC_VERSION < 1
 #error "Your SPI library installation is too old."
@@ -48,8 +48,8 @@ e-mail   :  support@circuitsathome.com
 #define MAX_HOST_DEBUG(...) VOID0
 #endif
 
-#if !defined(USB_HOST_SHIELD_USE_ISR)
-#if defined(USE_MULTIPLE_APP_API)
+#ifndef USB_HOST_SHIELD_USE_ISR
+#ifdef USE_MULTIPLE_APP_API
 #define USB_HOST_SHIELD_USE_ISR 0
 #else
 #define USB_HOST_SHIELD_USE_ISR 1
@@ -66,7 +66,7 @@ e-mail   :  support@circuitsathome.com
 //
 // Polled defaults
 //
-#if defined(BOARD_BLACK_WIDDOW)
+#ifdef BOARD_BLACK_WIDDOW
 #define UHS_MAX3421E_SS_ 6
 #define UHS_MAX3421E_INT_ 3
 #elif defined(CORE_TEENSY) && (defined(__AVR_AT90USB646__) || defined(__AVR_AT90USB1286__))
@@ -91,7 +91,7 @@ e-mail   :  support@circuitsathome.com
 #endif
 
 #else
-#if defined(ARDUINO_ARCH_PIC32)
+#ifdef ARDUINO_ARCH_PIC32
 // PIC32 only allows edge interrupts, isn't that lovely? We'll emulate it...
 #if CHANGE < 2
 #error core too old.
@@ -113,8 +113,8 @@ e-mail   :  support@circuitsathome.com
 #endif
 
 // More stupidity from our friends @ Sony...
-#if defined(ARDUINO_spresense_ast)
-#if !defined(NOT_AN_INTERRUPT)
+#ifdef ARDUINO_spresense_ast
+#ifndef NOT_AN_INTERRUPT
 #define NOT_AN_INTERRUPT -1
 #endif
 #endif
@@ -158,7 +158,7 @@ e-mail   :  support@circuitsathome.com
 #else
 #define UHS_MAX3421E_SS_ 10
 #ifdef __AVR__
-#if defined(__AVR_ATmega32U4__)
+#ifdef __AVR_ATmega32U4__
 #define INT_FOR_PIN2 1
 #define INT_FOR_PIN3 0
 #else
@@ -169,7 +169,7 @@ e-mail   :  support@circuitsathome.com
 #define UHS_MAX3421E_INT_ 3
 #else
 // Non-avr
-#if defined(ARDUINO_ARCH_PIC32)
+#ifdef ARDUINO_ARCH_PIC32
 // UNO32 External Interrupts:
 // Pin 38 (INT0), Pin 2 (INT1), Pin 7 (INT2), Pin 8 (INT3), Pin 35 (INT4)
 #define UHS_MAX3421E_INT_ 7
@@ -182,7 +182,7 @@ e-mail   :  support@circuitsathome.com
 
 
 
-#if defined(NO_AUTO_SPEED)
+#ifdef NO_AUTO_SPEED
 // Ugly details section...
 // MAX3421E characteristics
 // SPI Serial - Clock Input. An external SPI master supplies SCLK with frequencies up to 26MHz. The
@@ -195,8 +195,8 @@ e-mail   :  support@circuitsathome.com
 // Theoretical deadline for reply 17.7ns
 // 26MHz 38.4615ns period <-- MAX3421E theoretical maximum
 
-#if !defined(UHS_MAX3421E_SPD)
-#if defined(ARDUINO_SAMD_ZERO)
+#ifndef UHS_MAX3421E_SPD
+#ifdef ARDUINO_SAMD_ZERO
 // Zero violates spec early, needs a long setup time, or doesn't like high latency.
 #define UHS_MAX3421E_SPD 10000000
 #elif defined(ARDUINO_ARCH_PIC32)
@@ -225,7 +225,7 @@ e-mail   :  support@circuitsathome.com
 // Why not 26MHz? Because I have not found any MCU board that
 // can actually go that fast without problems.
 // Could be a shield limitation too.
-#if !defined(UHS_MAX3421E_SPD)
+#ifndef UHS_MAX3421E_SPD
 #define UHS_MAX3421E_SPD 25000000
 #endif
 #endif
@@ -271,7 +271,7 @@ e-mail   :  support@circuitsathome.com
 //      |______|         |______| |______| |______________|
 //
 #define IRQ_SENSE FALLING
-#if defined(ARDUINO_ARCH_PIC32)
+#ifdef ARDUINO_ARCH_PIC32
 //#define bmPULSEWIDTH PUSLEWIDTH10_6
 #define bmPULSEWIDTH 0
 #define bmIRQ_SENSE 0
@@ -280,20 +280,20 @@ e-mail   :  support@circuitsathome.com
 #define bmIRQ_SENSE 0
 #endif
 #else
-#if !defined(IRQ_SENSE)
+#ifndef IRQ_SENSE
 #define IRQ_SENSE LOW
 #endif
-#if !defined(bmPULSEWIDTH)
+#ifndef bmPULSEWIDTH
 #define bmPULSEWIDTH 0
 #endif
-#if !defined(bmIRQ_SENSE)
+#ifndef bmIRQ_SENSE
 #define bmIRQ_SENSE bmINTLEVEL
 #endif
 #endif
 
 class MAX3421E_HOST :
 public UHS_USB_HOST_BASE
-#if defined(SWI_IRQ_NUM)
+#ifdef SWI_IRQ_NUM
 , public dyn_SWI
 #endif
 {
@@ -330,7 +330,7 @@ public:
         uint8_t irq_pin;
         // Will use the defaults UHS_MAX3421E_SS, UHS_MAX3421E_INT and speed
 
-        UHS_NI MAX3421E_HOST(void) {
+        UHS_NI MAX3421E_HOST() {
                 sof_countdown = 0;
                 busevent = false;
                 doingreset = false;
@@ -394,7 +394,7 @@ public:
                 regWr(rPINCTL, (bmFDUPSPI | bmIRQ_SENSE) | (uint8_t)(state));
         };
 
-        void UHS_NI Task(void);
+        void UHS_NI Task();
 
         virtual uint8_t SetAddress(uint8_t addr, uint8_t ep, UHS_EpInfo **ppep, uint16_t &nak_limit);
         virtual uint8_t OutTransfer(UHS_EpInfo *pep, uint16_t nak_limit, uint16_t nbytes, uint8_t *data);
@@ -403,7 +403,7 @@ public:
         virtual uint8_t ctrlReqRead(UHS_EpInfo *pep, uint16_t *left, uint16_t *read, uint16_t nbytes, uint8_t *dataptr);
         virtual uint8_t dispatchPkt(uint8_t token, uint8_t ep, uint16_t nak_limit);
 
-        void UHS_NI ReleaseChildren(void) {
+        void UHS_NI ReleaseChildren() {
                 for(uint8_t i = 0; i < UHS_HOST_MAX_INTERFACE_DRIVERS; i++)
                         if(devConfig[i])
                                 devConfig[i]->Release();
@@ -418,9 +418,9 @@ public:
                 return false;
         };
 
-        virtual void VBUS_changed(void);
+        virtual void VBUS_changed();
 
-        virtual void UHS_NI doHostReset(void) {
+        virtual void UHS_NI doHostReset() {
 #if USB_HOST_SHIELD_USE_ISR
                 // Enable interrupts
                 noInterrupts();
@@ -469,48 +469,48 @@ public:
 
         int16_t UHS_NI Init(int16_t mseconds);
 
-        int16_t UHS_NI Init(void) {
+        int16_t UHS_NI Init() {
                 return Init(INT16_MIN);
         };
 
-        void ISRTask(void);
-        void ISRbottom(void);
-        void busprobe(void);
-        uint16_t reset(void);
+        void ISRTask();
+        void ISRbottom();
+        void busprobe();
+        uint16_t reset();
 
         // MAX3421e specific
         void regWr(uint8_t reg, uint8_t data);
         void gpioWr(uint8_t data);
         uint8_t regRd(uint8_t reg);
-        uint8_t gpioRd(void);
+        uint8_t gpioRd();
         uint8_t* bytesWr(uint8_t reg, uint8_t nbytes, uint8_t* data_p);
         uint8_t* bytesRd(uint8_t reg, uint8_t nbytes, uint8_t* data_p);
 
         // ARM/NVIC specific, used to emulate reentrant ISR.
-#if defined(SWI_IRQ_NUM)
+#ifdef SWI_IRQ_NUM
 
-        void dyn_SWISR(void) {
+        void dyn_SWISR() {
                 ISRbottom();
         };
 #endif
 
-        virtual void UHS_NI suspend_host(void) {
+        virtual void UHS_NI suspend_host() {
                 // Used on MCU that lack control of IRQ priority (AVR).
                 // Suspends ISRs, for critical code. IRQ will be serviced after it is resumed.
                 // NOTE: you must track the state yourself!
-#if defined(__AVR__)
+#ifdef __AVR__
                 noInterrupts();
                 detachInterrupt(UHS_GET_DPI(irq_pin));
                 interrupts();
 #endif
         };
 
-        virtual void UHS_NI resume_host(void);
+        virtual void UHS_NI resume_host();
 };
-#if !defined(SPIclass)
+#ifndef SPIclass
 #define SPIclass SPI
 #endif
-#if !defined(USB_HOST_SHIELD_LOADED)
+#ifndef USB_HOST_SHIELD_LOADED
 #include "USB_HOST_SHIELD_INLINE.h"
 #endif
 #else

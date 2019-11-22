@@ -148,7 +148,7 @@ namespace FTDI {
   constexpr uint8_t STENCIL_OP_DECR                    = 4;
   constexpr uint8_t STENCIL_OP_INVERT                  = 5;
 
-  typedef enum: uint32_t {
+  typedef enum : uint32_t {
    BITMAPS                                             = 1,
    POINTS                                              = 2,
    LINES                                               = 3,
@@ -272,13 +272,16 @@ namespace FTDI_FT810 {
   constexpr uint32_t CMD_SETBASE                      = 0xFFFFFF38;
   constexpr uint32_t CMD_MEDIAFIFO                    = 0xFFFFFF39;
   constexpr uint32_t CMD_PLAYVIDEO                    = 0xFFFFFF3A;
+  constexpr uint32_t CMD_SETFONT2                     = 0xFFFFFF3B;
+  constexpr uint32_t CMD_SETSCRATCH                   = 0xFFFFFF3C;
+  constexpr uint32_t CMD_ROMFONT                      = 0xFFFFFF3F;
   constexpr uint32_t CMD_VIDEOSTART                   = 0xFFFFFF40;
   constexpr uint32_t CMD_VIDEOFRAME                   = 0xFFFFFF41;
   constexpr uint32_t CMD_SETBITMAP                    = 0xFFFFFF43;
 }
 
 namespace FTDI {
-  enum effect_t {
+  enum effect_t : unsigned char {
     SILENCE                                         = 0x00,
     SQUARE_WAVE                                     = 0x01,
     SINE_WAVE                                       = 0x02,
@@ -339,7 +342,7 @@ namespace FTDI {
     UNMUTE                                          = 0x61
   };
 
-  enum note_t {
+  enum note_t : unsigned char {
     END_SONG                                        = 0xFF,
     REST                                            = 0x00,
 

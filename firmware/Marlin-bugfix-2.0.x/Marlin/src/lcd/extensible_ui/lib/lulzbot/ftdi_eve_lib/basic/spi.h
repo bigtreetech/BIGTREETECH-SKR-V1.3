@@ -22,13 +22,13 @@
 
 #pragma once
 
-#if !defined(CLCD_USE_SOFT_SPI)
+#ifndef CLCD_USE_SOFT_SPI
   #include <SPI.h>
 #endif
 
 namespace FTDI {
   namespace SPI {
-    #if !defined(CLCD_USE_SOFT_SPI)
+    #ifndef CLCD_USE_SOFT_SPI
       extern SPISettings spi_settings;
     #endif
 
@@ -122,7 +122,7 @@ namespace FTDI {
     void spi_read_bulk(      void *data, uint16_t len);
     bool spi_verify_bulk(const void *data, uint16_t len);
 
-    void ftdi_reset(void);
-    void test_pulse(void);
+    void ftdi_reset();
+    void test_pulse();
   }
 }

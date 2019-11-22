@@ -26,7 +26,7 @@
 
 #include "../../gcode.h"
 #include "../../../libs/L6470/L6470_Marlin.h"
-#include "../../../module/stepper_indirection.h"
+#include "../../../module/stepper/indirection.h"
 #include "../../../module/planner.h"
 
 #define DEBUG_OUT ENABLED(L6470_CHITCHAT)
@@ -108,7 +108,7 @@ void L6470_report_current(L6470 &motor, const uint8_t axis) {
   SERIAL_ECHO(temp_buf);
 
   SERIAL_ECHOPGM("   Motor Status: ");
-  const char * const stat_str;
+  const char *stat_str;
   switch (motor_status) {
     default:
     case 0: stat_str = PSTR("stopped"); break;
@@ -124,7 +124,7 @@ void L6470_report_current(L6470 &motor, const uint8_t axis) {
   SERIAL_ECHOPGM("   Vs_compensation: ");
   serialprintPGM((motor.GetParam(L6470_CONFIG) & CONFIG_EN_VSCOMP) ? PSTR("ENABLED ") : PSTR("DISABLED"));
 
-  SERIAL_ECHOLNPGM("   Compensation coefficient: ", dtostrf(comp_coef * 0.01f, 7, 2, numstr));
+  SERIAL_ECHOLNPAIR("   Compensation coefficient: ", dtostrf(comp_coef * 0.01f, 7, 2, numstr));
   SERIAL_ECHOPAIR("...KVAL_HOLD: ", motor.GetParam(L6470_KVAL_HOLD));
   SERIAL_ECHOPAIR("   KVAL_RUN : ", motor.GetParam(L6470_KVAL_RUN));
   SERIAL_ECHOPAIR("   KVAL_ACC: ", motor.GetParam(L6470_KVAL_ACC));
@@ -151,7 +151,7 @@ void L6470_report_current(L6470 &motor, const uint8_t axis) {
       break;
   }
   SERIAL_ECHO(dtostrf(val * 100 / 256, 10, 2, numstr));
-  SERIAL_ECHO("%% ");
+  SERIAL_ECHOPGM("%% ");
   serialprintPGM(suf);
   SERIAL_EOL();
 }

@@ -43,6 +43,9 @@ GCodeQueue queue;
   #include "../feature/binary_protocol.h"
 #endif
 
+#if ENABLED(POWER_LOSS_RECOVERY)
+  #include "../feature/power_loss_recovery.h"
+#endif
 
 /**
  * GCode line number handling. Hosts may opt to include line numbers when
@@ -64,7 +67,7 @@ uint8_t GCodeQueue::length = 0,  // Count of commands in the queue
         GCodeQueue::index_r = 0, // Ring buffer read position
         GCodeQueue::index_w = 0; // Ring buffer write position
 
-char GCodeQueue::buffer[BUFSIZE][MAX_CMD_SIZE];
+char GCodeQueue::command_buffer[BUFSIZE][MAX_CMD_SIZE];
 
 /*
  * The port that the command was received on
@@ -120,6 +123,9 @@ void GCodeQueue::_commit_command(bool say_ok
   #if NUM_SERIAL > 1
     port[index_w] = p;
   #endif
+  #if ENABLED(POWER_LOSS_RECOVERY)
+    recovery.commit_sdpos(index_w);
+  #endif
   if (++index_w >= BUFSIZE) index_w = 0;
   length++;
 }
@@ -135,7 +141,7 @@ bool GCodeQueue::_enqueue(const char* cmd, bool say_ok/*=false*/
   #endif
 ) {
   if (*cmd == ';' || length >= BUFSIZE) return false;
-  strcpy(buffer[index_w], cmd);
+  strcpy(command_buffer[index_w], cmd);
   _commit_command(say_ok
     #if NUM_SERIAL > 1
       , pn
@@ -242,7 +248,7 @@ void GCodeQueue::ok_to_send() {
   if (!send_ok[index_r]) return;
   SERIAL_ECHOPGM(MSG_OK);
   #if ENABLED(ADVANCED_OK)
-    char* p = buffer[index_r];
+    char* p = command_buffer[index_r];
     if (*p == 'N') {
       SERIAL_ECHO(' ');
       SERIAL_ECHO(*p++);
@@ -553,10 +559,14 @@ void GCodeQueue::get_serial_commands() {
         // Skip empty lines and comments
         if (!sd_count) { thermalManager.manage_heater(); continue; }
 
-        buffer[index_w][sd_count] = '\0'; // terminate string
+        command_buffer[index_w][sd_count] = '\0'; // terminate string
         sd_count = 0; // clear sd line buffer
 
         _commit_command(false);
+
+        #if ENABLED(POWER_LOSS_RECOVERY)
+          recovery.cmd_sdpos = card.getIndex(); // Prime for the next _commit_command
+        #endif
       }
       else if (sd_count >= MAX_CMD_SIZE - 1) {
         /**
@@ -574,7 +584,7 @@ void GCodeQueue::get_serial_commands() {
           #if ENABLED(PAREN_COMMENTS)
             && ! sd_comment_paren_mode
           #endif
-        ) buffer[index_w][sd_count++] = sd_char;
+        ) command_buffer[index_w][sd_count++] = sd_char;
       }
     }
   }
@@ -610,7 +620,7 @@ void GCodeQueue::advance() {
   #if ENABLED(SDSUPPORT)
 
     if (card.flag.saving) {
-      char* command = buffer[index_r];
+      char* command = command_buffer[index_r];
       if (is_M29(command)) {
         // M29 closes the file
         card.closefile();

@@ -27,11 +27,11 @@
 /********************************* SPI Functions *********************************/
 
 namespace FTDI {
-  #if !defined(CLCD_USE_SOFT_SPI)
+  #ifndef CLCD_USE_SOFT_SPI
     SPISettings SPI::spi_settings(SPI_FREQUENCY, MSBFIRST, SPI_MODE0);
   #endif
 
-  void SPI::spi_init (void) {
+  void SPI::spi_init() {
     SET_OUTPUT(CLCD_MOD_RESET); // Module Reset (a.k.a. PD, not SPI)
     WRITE(CLCD_MOD_RESET, 0); // start with module in power-down
 
@@ -63,20 +63,11 @@ namespace FTDI {
       uint8_t k;
 
       noInterrupts();
-      for(k = 0; k <8; k++) {  // Output and Read each bit of spiOutByte and spiInByte
-        if (spiOutByte & spiIndex) {   // Output MOSI Bit
-          WRITE(CLCD_SOFT_SPI_MOSI, 1);
-        }
-        else {
-          WRITE(CLCD_SOFT_SPI_MOSI, 0);
-        }
+      for (k = 0; k < 8; k++) {  // Output and Read each bit of spiOutByte and spiInByte
+        WRITE(CLCD_SOFT_SPI_MOSI, (spiOutByte & spiIndex) ? 1 : 0); // Output MOSI Bit
         WRITE(CLCD_SOFT_SPI_SCLK, 1);   // Pulse Clock
         WRITE(CLCD_SOFT_SPI_SCLK, 0);
-
-        if (READ(CLCD_SOFT_SPI_MISO)) {
-          spiInByte |= spiIndex;
-        }
-
+        if (READ(CLCD_SOFT_SPI_MISO)) spiInByte |= spiIndex;
         spiIndex >>= 1;
       }
       interrupts();
@@ -86,20 +77,13 @@ namespace FTDI {
 
   #ifdef CLCD_USE_SOFT_SPI
     void SPI::_soft_spi_send (uint8_t spiOutByte) {
-      uint8_t spiIndex  = 0x80;
-      uint8_t k;
+      uint8_t k, spiIndex  = 0x80;
 
       noInterrupts();
-      for(k = 0; k <8; k++) {         // Output each bit of spiOutByte
-        if (spiOutByte & spiIndex) {   // Output MOSI Bit
-          WRITE(CLCD_SOFT_SPI_MOSI, 1);
-        }
-        else {
-          WRITE(CLCD_SOFT_SPI_MOSI, 0);
-        }
+      for (k = 0; k < 8; k++) {         // Output each bit of spiOutByte
+        WRITE(CLCD_SOFT_SPI_MOSI, (spiOutByte & spiIndex) ? 1 : 0); // Output MOSI Bit
         WRITE(CLCD_SOFT_SPI_SCLK, 1);   // Pulse Clock
         WRITE(CLCD_SOFT_SPI_SCLK, 0);
-
         spiIndex >>= 1;
       }
       interrupts();
@@ -108,7 +92,7 @@ namespace FTDI {
 
   void SPI::spi_read_bulk (void *data, uint16_t len) {
     uint8_t* p = (uint8_t *)data;
-    #if !defined(CLCD_USE_SOFT_SPI)
+    #ifndef CLCD_USE_SOFT_SPI
       ::SPI.transfer(p, len);
     #else
       while (len--) *p++ = spi_recv();
@@ -122,8 +106,8 @@ namespace FTDI {
   }
 
   // CLCD SPI - Chip Select
-  void SPI::spi_ftdi_select (void) {
-    #if !defined(CLCD_USE_SOFT_SPI)
+  void SPI::spi_ftdi_select() {
+    #ifndef CLCD_USE_SOFT_SPI
       ::SPI.beginTransaction(spi_settings);
     #endif
     WRITE(CLCD_SPI_CS, 0);
@@ -131,9 +115,9 @@ namespace FTDI {
   }
 
   // CLCD SPI - Chip Deselect
-  void SPI::spi_ftdi_deselect (void) {
+  void SPI::spi_ftdi_deselect() {
     WRITE(CLCD_SPI_CS, 1);
-    #if !defined(CLCD_USE_SOFT_SPI)
+    #ifndef CLCD_USE_SOFT_SPI
       ::SPI.endTransaction();
     #endif
   }
@@ -141,7 +125,7 @@ namespace FTDI {
   #ifdef SPI_FLASH_SS
   // Serial SPI Flash SPI - Chip Select
   void SPI::spi_flash_select () {
-    #if !defined(CLCD_USE_SOFT_SPI)
+    #ifndef CLCD_USE_SOFT_SPI
     ::SPI.beginTransaction(spi_settings);
     #endif
     WRITE(SPI_FLASH_SS, 0);
@@ -151,14 +135,14 @@ namespace FTDI {
   // Serial SPI Flash SPI - Chip Deselect
   void SPI::spi_flash_deselect () {
     WRITE(SPI_FLASH_SS, 1);
-    #if !defined(CLCD_USE_SOFT_SPI)
+    #ifndef CLCD_USE_SOFT_SPI
     ::SPI.endTransaction();
     #endif
   }
   #endif
 
   // Not really a SPI signal...
-  void SPI::ftdi_reset (void) {
+  void SPI::ftdi_reset() {
     WRITE(CLCD_MOD_RESET, 0);
     delay(6); /* minimum time for power-down is 5ms */
     WRITE(CLCD_MOD_RESET, 1);
@@ -166,8 +150,7 @@ namespace FTDI {
   }
 
   // Not really a SPI signal...
-  void SPI::test_pulse(void)
-  {
+  void SPI::test_pulse() {
     #ifdef CLCD_AUX_0
       WRITE(CLCD_AUX_0, 1);
       delayMicroseconds(10);

@@ -22,7 +22,7 @@
 
 #include "../config.h"
 
-#if ENABLED(LULZBOT_TOUCH_UI) && ENABLED(DEVELOPER_SCREENS)
+#if BOTH(LULZBOT_TOUCH_UI, TOUCH_UI_DEVELOPER_MENU)
 
 #include "screens.h"
 
@@ -31,17 +31,17 @@
 using namespace FTDI;
 
 void ConfirmEraseFlashDialogBox::onRedraw(draw_mode_t) {
-  drawMessage(F("Are you sure? SPI flash will be erased."));
+  drawMessage(GET_TEXT_F(MSG_ERASE_FLASH_WARNING));
   drawYesNoButtons();
 }
 
 bool ConfirmEraseFlashDialogBox::onTouchEnd(uint8_t tag) {
   switch (tag) {
     case 1:
-      SpinnerDialogBox::show(F("Erasing..."));
+      SpinnerDialogBox::show(GET_TEXT_F(MSG_ERASING));
       UIFlashStorage::format_flash();
       SpinnerDialogBox::hide();
-      AlertDialogBox::show(F("SPI flash erased"));
+      AlertDialogBox::show(GET_TEXT_F(MSG_ERASED));
       // Remove ConfirmEraseFlashDialogBox from the stack
       // so the alert box doesn't return to me.
       current_screen.forget();

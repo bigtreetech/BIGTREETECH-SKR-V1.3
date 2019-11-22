@@ -22,7 +22,7 @@
 
 #include "../config.h"
 
-#if ENABLED(LULZBOT_TOUCH_UI) && ENABLED(JUNCTION_DEVIATION)
+#if ENABLED(LULZBOT_TOUCH_UI) && DISABLED(CLASSIC_JERK)
 
 #include "screens.h"
 
@@ -33,9 +33,9 @@ using namespace Theme;
 void JunctionDeviationScreen::onRedraw(draw_mode_t what) {
   widgets_t w(what);
   w.precision(2);
-  w.units(PSTR("mm"));
-  w.heading(                          PSTR("Junction Deviation"));
-  w.color(other) .adjuster( 2, PSTR(""), getJunctionDeviation_mm() );
+  w.units(GET_TEXT_F(MSG_UNITS_MM));
+  w.heading(GET_TEXT_F(MSG_JUNCTION_DEVIATION));
+  w.color(other) .adjuster( 2, F(""), getJunctionDeviation_mm() );
   w.increments();
 }
 
@@ -51,4 +51,4 @@ bool JunctionDeviationScreen::onTouchHeld(uint8_t tag) {
   return true;
 }
 
-#endif // LULZBOT_TOUCH_UI
+#endif // LULZBOT_TOUCH_UI && !CLASSIC_JERK

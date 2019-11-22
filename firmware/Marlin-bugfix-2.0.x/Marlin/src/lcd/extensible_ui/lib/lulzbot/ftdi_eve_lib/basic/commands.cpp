@@ -29,15 +29,15 @@
 using namespace FTDI;
 using namespace FTDI::SPI;
 
-void CLCD::enable (void) {
+void CLCD::enable() {
   mem_write_8(REG::PCLK, Pclk);
 }
 
-void CLCD::disable (void) {
+void CLCD::disable() {
   mem_write_8(REG::PCLK, 0x00);
 }
 
-void CLCD::set_brightness (uint8_t brightness) {
+void CLCD::set_brightness(uint8_t brightness) {
   mem_write_8(REG::PWM_DUTY, min(128,brightness));
 }
 
@@ -45,11 +45,12 @@ uint8_t CLCD::get_brightness() {
   return mem_read_8(REG::PWM_DUTY);
 }
 
-void CLCD::turn_on_backlight (void) {
+void CLCD::turn_on_backlight() {
   mem_write_8(REG::PWM_DUTY, 128);
 }
 
 void CLCD::FontMetrics::load(const uint8_t font) {
+  static_assert(sizeof(FontMetrics) == 148, "Sizeof font metrics is incorrect");
   uint32_t rom_fontroot = mem_read_32(MAP::ROM_FONT_ADDR);
   mem_read_bulk(rom_fontroot + 148 * (font - 16), (uint8_t*) this, 148);
 }
@@ -65,7 +66,7 @@ uint16_t CLCD::FontMetrics::get_text_width(const char *str, size_t n) const {
   return width;
 }
 
-uint16_t CLCD::FontMetrics::get_text_width_P(const char *str, size_t n) const {
+uint16_t CLCD::FontMetrics::get_text_width(progmem_str str, size_t n) const {
   uint16_t width = 0;
   const uint8_t *p = (const uint8_t *) str;
   for(;;) {
@@ -866,6 +867,21 @@ void CLCD::CommandFifo::setrotate (uint8_t rotation) {
 }
 #endif
 
+#if FTDI_API_LEVEL >= 810
+void CLCD::CommandFifo::romfont (uint8_t font, uint8_t romslot) {
+  struct {
+    uint32_t  type = CMD_ROMFONT;
+    uint32_t  font;
+    uint32_t  romslot;
+  } cmd_data;
+
+  cmd_data.font    = font;
+  cmd_data.romslot = romslot;
+
+  cmd( &cmd_data, sizeof(cmd_data) );
+}
+#endif
+
 /**************************** FT800/810 Co-Processor Command FIFO ****************************/
 
 bool CLCD::CommandFifo::is_processing() {
@@ -905,10 +921,9 @@ template <class T> bool CLCD::CommandFifo::_write_unaligned(T data, uint16_t len
   uint32_t bytes_tail, bytes_head;
   uint32_t command_read_ptr;
 
-  #ifdef UI_FRAMEWORK_DEBUG
+  #if ENABLED(TOUCH_UI_DEBUG)
   if (command_write_ptr == 0xFFFFFFFFul) {
-    SERIAL_ECHO_START();
-    SERIAL_ECHOLNPGM("Attempt to write to FIFO before CommandFifo::Cmd_Start().");
+    SERIAL_ECHO_MSG("Attempt to write to FIFO before CommandFifo::Cmd_Start().");
   }
   #endif
 
@@ -924,7 +939,7 @@ template <class T> bool CLCD::CommandFifo::_write_unaligned(T data, uint16_t len
     }
     // Check for faults which can lock up the command processor
     if (has_fault()) {
-      #ifdef UI_FRAMEWORK_DEBUG
+      #if ENABLED(TOUCH_UI_DEBUG)
         SERIAL_ECHOLNPGM("Fault waiting for space in the command processor");
       #endif
       return false;
@@ -969,7 +984,7 @@ void CLCD::CommandFifo::execute() {
 }
 
 void CLCD::CommandFifo::reset() {
-  #ifdef UI_FRAMEWORK_DEBUG
+  #if ENABLED(TOUCH_UI_DEBUG)
     SERIAL_ECHOLNPGM("Resetting command processor");
   #endif
   safe_delay(100);
@@ -988,7 +1003,7 @@ template <class T> bool CLCD::CommandFifo::write(T data, uint16_t len) {
   const uint8_t padding = MULTIPLE_OF_4(len) - len;
 
   if (has_fault()) {
-    #ifdef UI_FRAMEWORK_DEBUG
+    #if ENABLED(TOUCH_UI_DEBUG)
       SERIAL_ECHOLNPGM("Faulted... ignoring write.");
     #endif
     return false;
@@ -998,21 +1013,21 @@ template <class T> bool CLCD::CommandFifo::write(T data, uint16_t len) {
   // management.
   uint16_t Command_Space = mem_read_32(REG::CMDB_SPACE) & 0x0FFF;
   if (Command_Space < (len + padding)) {
-    #ifdef UI_FRAMEWORK_DEBUG
+    #if ENABLED(TOUCH_UI_DEBUG)
       SERIAL_ECHO_START();
       SERIAL_ECHOPAIR("Waiting for ", len + padding);
-      SERIAL_ECHOPAIR(" bytes in command queue, now free: ", Command_Space);
+      SERIAL_ECHOLNPAIR(" bytes in command queue, now free: ", Command_Space);
     #endif
     do {
       Command_Space = mem_read_32(REG::CMDB_SPACE) & 0x0FFF;
       if (has_fault()) {
-        #ifdef UI_FRAMEWORK_DEBUG
+        #if ENABLED(TOUCH_UI_DEBUG)
           SERIAL_ECHOLNPGM("... fault");
         #endif
         return false;
       }
     } while (Command_Space < len + padding);
-    #ifdef UI_FRAMEWORK_DEBUG
+    #if ENABLED(TOUCH_UI_DEBUG)
       SERIAL_ECHOLNPGM("... done");
     #endif
   }
@@ -1026,17 +1041,17 @@ template bool CLCD::CommandFifo::write(progmem_str, uint16_t);
 
 // CO_PROCESSOR COMMANDS
 
-void CLCD::CommandFifo::str (const char * data) {
+void CLCD::CommandFifo::str(const char * data) {
   write(data, strlen(data)+1);
 }
 
-void CLCD::CommandFifo::str (progmem_str data) {
+void CLCD::CommandFifo::str(progmem_str data) {
   write(data, strlen_P((const char*)data)+1);
 }
 
 /******************* LCD INITIALIZATION ************************/
 
-void CLCD::init (void) {
+void CLCD::init() {
   spi_init();                                  // Set Up I/O Lines for SPI and FT800/810 Control
   ftdi_reset();                                // Power down/up the FT8xx with the apropriate delays
 
@@ -1054,9 +1069,8 @@ void CLCD::init (void) {
   for(counter = 0; counter < 250; counter++) {
    uint8_t device_id = mem_read_8(REG::ID);            // Read Device ID, Should Be 0x7C;
    if (device_id == 0x7c) {
-     #ifdef UI_FRAMEWORK_DEBUG
-       SERIAL_ECHO_START();
-       SERIAL_ECHOLNPGM("FTDI chip initialized ");
+     #if ENABLED(TOUCH_UI_DEBUG)
+       SERIAL_ECHO_MSG("FTDI chip initialized ");
      #endif
      break;
    }
@@ -1064,7 +1078,7 @@ void CLCD::init (void) {
      delay(1);
    }
    if (counter == 249) {
-     #ifdef UI_FRAMEWORK_DEBUG
+     #if ENABLED(TOUCH_UI_DEBUG)
        SERIAL_ECHO_START();
        SERIAL_ECHOLNPAIR("Timeout waiting for device ID, should be 124, got ", device_id);
      #endif
@@ -1089,9 +1103,9 @@ void CLCD::init (void) {
   mem_write_8(REG::CSPREAD,  FTDI::CSpread);
 
   /* write a basic display-list to get things started */
-	mem_write_32(MAP::RAM_DL,      DL::CLEAR_COLOR_RGB);
-	mem_write_32(MAP::RAM_DL + 4, (DL::CLEAR | 0x07)); /* clear color, stencil and tag buffer */
-	mem_write_32(MAP::RAM_DL + 8,  DL::DL_DISPLAY);	/* end of display list */
+  mem_write_32(MAP::RAM_DL,      DL::CLEAR_COLOR_RGB);
+  mem_write_32(MAP::RAM_DL + 4, (DL::CLEAR | 0x07)); /* clear color, stencil and tag buffer */
+  mem_write_32(MAP::RAM_DL + 8,  DL::DL_DISPLAY);    /* end of display list */
 
   mem_write_8(REG::DLSWAP, 0x02); // activate display list, Bad Magic Cookie 2 = switch to new list after current frame is scanned out
 

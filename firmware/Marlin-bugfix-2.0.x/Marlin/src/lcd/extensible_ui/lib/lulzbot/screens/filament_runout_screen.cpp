@@ -22,7 +22,7 @@
 
 #include "../config.h"
 
-#if ENABLED(LULZBOT_TOUCH_UI) && ENABLED(FILAMENT_RUNOUT_SENSOR)
+#if BOTH(LULZBOT_TOUCH_UI, FILAMENT_RUNOUT_SENSOR)
 
 #include "screens.h"
 
@@ -32,15 +32,16 @@ using namespace Theme;
 
 void FilamentRunoutScreen::onRedraw(draw_mode_t what) {
   widgets_t w(what);
-  w.heading(   PSTR("Runout Detection:"));
-  w.toggle( 2, PSTR("Filament Sensor:"), PSTR("off\xFFon"), getFilamentRunoutEnabled());
+  w.heading(   GET_TEXT_F(MSG_FILAMENT));
+  w.toggle( 2, GET_TEXT_F(MSG_RUNOUT_SENSOR), getFilamentRunoutEnabled());
 
   #ifdef FILAMENT_RUNOUT_DISTANCE_MM
-    w.heading(PSTR("Detection Threshold:"));
-    w.units(PSTR("mm"));
+    extern const char NUL_STR[];
+    w.heading(GET_TEXT_F(MSG_RUNOUT_DISTANCE_MM));
+    w.units(GET_TEXT_F(MSG_UNITS_MM));
     w.precision(0);
     w.color(e_axis);
-    w.adjuster( 10, PSTR("Distance:"), getFilamentRunoutDistance_mm(), getFilamentRunoutEnabled());
+    w.adjuster( 10, NUL_STR, getFilamentRunoutDistance_mm(), getFilamentRunoutEnabled());
     w.increments();
   #endif
 }

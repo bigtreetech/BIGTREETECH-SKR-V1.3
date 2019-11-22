@@ -32,14 +32,14 @@ using namespace Theme;
 void DisplayTuningScreen::onRedraw(draw_mode_t what) {
   widgets_t w(what);
   w.precision(0, BaseNumericAdjustmentScreen::DEFAULT_LOWEST);
-  w.units(PSTR(""));
-  w.heading(     PSTR("Display Tuning"));
+  w.units(F(""));
+  w.heading(GET_TEXT_F(MSG_DISPLAY_MENU));
   w.color(other);
-  w.adjuster( 2, PSTR("H Offset:"), CLCD::mem_read_16(CLCD::REG::HOFFSET) );
-  w.adjuster( 4, PSTR("V Offset:"), CLCD::mem_read_16(CLCD::REG::VOFFSET) );
+  w.adjuster( 2, GET_TEXT_F(MSG_H_OFFSET), CLCD::mem_read_16(CLCD::REG::HOFFSET) );
+  w.adjuster( 4, GET_TEXT_F(MSG_V_OFFSET), CLCD::mem_read_16(CLCD::REG::VOFFSET) );
   w.increments();
-  w.heading(     PSTR("Touch Screen"));
-  w.button(6, PSTR("Calibrate"));
+  w.heading(     GET_TEXT_F(MSG_TOUCH_SCREEN));
+  w.button(6,    GET_TEXT_F(MSG_CALIBRATE));
 }
 
 bool DisplayTuningScreen::onTouchHeld(uint8_t tag) {
