@@ -44,8 +44,8 @@
 // TIM7 is used for SERVO
 // TIMER_SERIAL defaults to TIM7 so we'll override it here
 //
-#define STEP_TIMER 10
-#define TEMP_TIMER 14
+#define STEP_TIMER                            10
+#define TEMP_TIMER                            14
 #define TIMER_SERIAL                        TIM9
 #define HAL_TIMER_RATE                     F_CPU
 
@@ -138,6 +138,7 @@
 #define BTN_PIN                             PC10
 #define PS_ON_PIN                           PE11
 #define KILL_PIN                            PC5
+#define NEOPIXEL_PIN                        PB4
 
 #define SDSS                                PA2
 #define SD_DETECT_PIN                       PB0

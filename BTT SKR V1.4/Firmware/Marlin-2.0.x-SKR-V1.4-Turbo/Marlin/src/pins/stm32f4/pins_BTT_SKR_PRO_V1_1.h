@@ -28,3 +28,19 @@
 #define BOARD_INFO_NAME "BTT SKR Pro V1.1"
 
 #include "pins_BTT_SKR_PRO_common.h"
+
+// SPI for Max6675 or Max31855 Thermocouple
+// Uses a separate SPI bus
+// If you have a two-way thermocouple, you can customize two THERMO_CSx_PIN pins (x:1~2)
+#if 0
+#define THERMO_SCK_PIN                      PF10   // SCK
+#define THERMO_DO_PIN                       PF9   // MISO
+#define THERMO_CS1_PIN                      PF8   // CS1
+#define THERMO_CS2_PIN                      PC9   // CS2
+
+#define MAX6675_SS_PIN            THERMO_CS1_PIN
+#define MAX6675_SS2_PIN           THERMO_CS2_PIN
+#define MAX6675_SCK_PIN           THERMO_SCK_PIN
+#define MAX6675_DO_PIN             THERMO_DO_PIN
+
+#endif
